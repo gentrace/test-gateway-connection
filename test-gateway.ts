@@ -582,8 +582,9 @@ async function testGatewayTransformProvider() {
   );
 
   // Test 12: Vision with Base64 Encoded Image
-  // Creating a simple 1x1 red pixel PNG as base64
-  const base64RedPixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  // Creating a small 10x10 gradient image that transitions from blue to green
+  // This is a more substantive test image that shows color gradients
+  const base64GradientImage = "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAABmJLR0QA/wD/AP+gvaeTAAAAxklEQVQYlWNgYGBgEBQUZGBgYGD4//8/AxYgKCjIwMDAwPD//38GbGpwKcamCKcibGqwKcKpCJsabIqwKcamBpsirGowFeFSg00xNjXYFGNTg00xNjXYFGNTg00xNjXYFGNTg00xNjXYFGNTg00xNjXYFGNTg00xNjXYFKNThE0NNsXY1GBTjE0NNsXY1GBTjE0NNsXY1GBTjE0NNsVUA7h+p5lizABXYmLg+H+Pof8/A8P/fwwMjP//MzAwMjJiSHNmZmZEVgMAPX0hJnB7mPgAAAAASUVORK5CYII=";
   
   await runTest(
     "Test 12: Vision with Base64 Encoded Image",
@@ -596,10 +597,10 @@ async function testGatewayTransformProvider() {
         { 
           role: "user", 
           content: [
-            { type: "text", text: "Describe what you see in this image. What color is it?" },
+            { type: "text", text: "Describe what you see in this image. Can you identify any colors or patterns?" },
             { 
               type: "image", 
-              image: `data:image/png;base64,${base64RedPixel}`
+              image: `data:image/png;base64,${base64GradientImage}`
             }
           ]
         },
@@ -607,7 +608,7 @@ async function testGatewayTransformProvider() {
     },
     async () => {
       console.log("\nStarting vision test with base64 encoded image...");
-      console.log("Image: 1x1 red pixel PNG (base64)");
+      console.log("Image: 10x10 gradient PNG (blue to green transition)");
       
       const result = await generateText({
         model: gatewayTransform("gpt-4o"),
@@ -615,10 +616,10 @@ async function testGatewayTransformProvider() {
           { 
             role: "user", 
             content: [
-              { type: "text", text: "Describe what you see in this image. What color is it?" },
+              { type: "text", text: "Describe what you see in this image. Can you identify any colors or patterns?" },
               { 
                 type: "image", 
-                image: `data:image/png;base64,${base64RedPixel}`
+                image: `data:image/png;base64,${base64GradientImage}`
               }
             ]
           },
