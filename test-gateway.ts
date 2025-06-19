@@ -533,6 +533,106 @@ async function testGatewayTransformProvider() {
     }
   );
 
+  // Test 11: Vision with External Image URL
+  await runTest(
+    "Test 11: Vision with External Image URL",
+    {
+      model: "gpt-4o",
+      streaming: false,
+      temperature: 0.7,
+      maxTokens: 200,
+      messages: [
+        { 
+          role: "user", 
+          content: [
+            { type: "text", text: "What's in this image?" },
+            { 
+              type: "image", 
+              image: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg" 
+            }
+          ]
+        },
+      ],
+    },
+    async () => {
+      console.log("\nStarting vision test with external image URL...");
+      
+      const result = await generateText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          { 
+            role: "user", 
+            content: [
+              { type: "text", text: "What's in this image?" },
+              { 
+                type: "image", 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg" 
+              }
+            ]
+          },
+        ],
+        temperature: 0.7,
+        maxTokens: 200,
+      });
+
+      console.log("\nVision response (external URL):");
+      console.log("Generated Text:", result.text);
+      console.log("Image source: External URL");
+    }
+  );
+
+  // Test 12: Vision with Base64 Encoded Image
+  // Creating a simple 1x1 red pixel PNG as base64
+  const base64RedPixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  
+  await runTest(
+    "Test 12: Vision with Base64 Encoded Image",
+    {
+      model: "gpt-4o",
+      streaming: false,
+      temperature: 0.7,
+      maxTokens: 150,
+      messages: [
+        { 
+          role: "user", 
+          content: [
+            { type: "text", text: "Describe what you see in this image. What color is it?" },
+            { 
+              type: "image", 
+              image: `data:image/png;base64,${base64RedPixel}`
+            }
+          ]
+        },
+      ],
+    },
+    async () => {
+      console.log("\nStarting vision test with base64 encoded image...");
+      console.log("Image: 1x1 red pixel PNG (base64)");
+      
+      const result = await generateText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          { 
+            role: "user", 
+            content: [
+              { type: "text", text: "Describe what you see in this image. What color is it?" },
+              { 
+                type: "image", 
+                image: `data:image/png;base64,${base64RedPixel}`
+              }
+            ]
+          },
+        ],
+        temperature: 0.7,
+        maxTokens: 150,
+      });
+
+      console.log("\nVision response (base64):");
+      console.log("Generated Text:", result.text);
+      console.log("Image source: Base64 encoded data");
+    }
+  );
+
   console.log("\n\n========================================");
   console.log("=== Test Results Summary ===");
   console.log("========================================");
