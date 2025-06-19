@@ -1,0 +1,26 @@
+{
+  "name": "test-gateway-transform-connection",
+  "version": "1.0.0",
+  "description": "Standalone gateway transformation package for testing gateway connections",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "tsx test-gateway.ts",
+    "dev": "tsx --watch test-gateway.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/provider": "^0.0.17",
+    "@ai-sdk/provider-utils": "^1.0.9",
+    "ai": "^3.4.33",
+    "node-fetch": "^2.7.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/node-fetch": "^2.6.11",
+    "dotenv": "^16.4.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
