@@ -8,34 +8,87 @@ import nodeFetch from "node-fetch";
  * Never use this in production as it poses significant security risks.
  */
 export function createCustomFetch(): FetchFunction {
+  console.log("[CreateCustomFetch] Function: createCustomFetch");
   console.log("[CreateCustomFetch] Creating custom fetch with SSL bypass...");
+  console.log("[CreateCustomFetch] Timestamp:", new Date().toISOString());
   console.warn(
     "[CreateCustomFetch] WARNING: SSL certificate verification is disabled!"
   );
   console.warn(
     "[CreateCustomFetch] This should only be used in development/testing environments."
   );
+  console.warn("[CreateCustomFetch] NODE_ENV:", process.env.NODE_ENV);
 
-  const agent = new https.Agent({
-    rejectUnauthorized: false,
-  });
+  let agent;
+  try {
+    agent = new https.Agent({
+      rejectUnauthorized: false,
+    });
+    console.log("[CreateCustomFetch] HTTPS agent created successfully");
+  } catch (agentError) {
+    console.error("[CreateCustomFetch] ERROR creating HTTPS agent:", {
+      errorType: agentError?.constructor?.name,
+      errorMessage: agentError?.message,
+      errorStack: agentError?.stack,
+      timestamp: new Date().toISOString()
+    });
+    throw agentError;
+  }
 
   return async (url, options) => {
-    console.log("[CreateCustomFetch] Fetching URL:", url.toString());
+    console.log("[CreateCustomFetch] Fetch called");
+    console.log("[CreateCustomFetch] URL:", url.toString());
     console.log(
       "[CreateCustomFetch] Request method:",
       options?.method || "GET"
     );
     console.log("[CreateCustomFetch] Request headers:", options?.headers);
+    
+    if (options?.body) {
+      console.log("[CreateCustomFetch] Request has body");
+      console.log("[CreateCustomFetch] Body type:", typeof options.body);
+      if (typeof options.body === 'string') {
+        console.log("[CreateCustomFetch] Body preview:", options.body.substring(0, 200) + "...");
+      }
+    }
 
     const isHttps = url.toString().startsWith("https");
-    console.log("[CreateCustomFetch] Is HTTPS:", isHttps);
+    console.log("[CreateCustomFetch] Protocol:", isHttps ? "HTTPS" : "HTTP");
     console.log("[CreateCustomFetch] Using custom agent:", isHttps);
 
-    // @ts-ignore - node-fetch types don't perfectly align with standard fetch
-    return nodeFetch(url, {
-      ...options,
-      agent: isHttps ? agent : undefined,
-    }) as unknown as Promise<Response>;
+    try {
+      console.log("[CreateCustomFetch] Initiating fetch request...");
+      const startTime = Date.now();
+      
+      // @ts-ignore - node-fetch types don't perfectly align with standard fetch
+      const response = await nodeFetch(url, {
+        ...options,
+        agent: isHttps ? agent : undefined,
+      }) as unknown as Response;
+      
+      const endTime = Date.now();
+      console.log("[CreateCustomFetch] Fetch completed successfully");
+      console.log("[CreateCustomFetch] Response time:", endTime - startTime, "ms");
+      console.log("[CreateCustomFetch] Response status:", response.status);
+      console.log("[CreateCustomFetch] Response status text:", response.statusText);
+      console.log("[CreateCustomFetch] Response headers:", response.headers);
+      
+      return response;
+    } catch (fetchError) {
+      console.error("[CreateCustomFetch] ERROR during fetch:", {
+        errorType: fetchError?.constructor?.name,
+        errorMessage: fetchError?.message,
+        errorStack: fetchError?.stack,
+        url: url.toString(),
+        method: options?.method || "GET",
+        timestamp: new Date().toISOString()
+      });
+      console.error("[CreateCustomFetch] Possible causes:");
+      console.error("[CreateCustomFetch]   - Network connectivity issues");
+      console.error("[CreateCustomFetch]   - Invalid URL");
+      console.error("[CreateCustomFetch]   - Server not responding");
+      console.error("[CreateCustomFetch]   - Firewall blocking request");
+      throw fetchError;
+    }
   };
 }

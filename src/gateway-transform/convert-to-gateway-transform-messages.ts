@@ -6,13 +6,20 @@ import {
 export function convertToGatewayTransformMessages(
   prompt: LanguageModelV1Prompt
 ): unknown[] {
+  console.log("[ConvertMessages] Function: convertToGatewayTransformMessages");
   console.log("[ConvertMessages] Starting message conversion...");
+  console.log("[ConvertMessages] Timestamp:", new Date().toISOString());
   console.log("[ConvertMessages] Input prompt length:", prompt.length);
+  console.log("[ConvertMessages] Input prompt:", JSON.stringify(prompt, null, 2));
 
   const messages: unknown[] = [];
+  let messageIndex = 0;
 
-  for (const { role, content } of prompt) {
-    console.log("[ConvertMessages] Processing message with role:", role);
+  try {
+    for (const { role, content } of prompt) {
+      messageIndex++;
+      console.log("[ConvertMessages] Processing message", messageIndex, "with role:", role);
+      console.log("[ConvertMessages] Content type:", Array.isArray(content) ? 'array' : typeof content);
 
     switch (role) {
       case "system": {
@@ -38,18 +45,40 @@ export function convertToGatewayTransformMessages(
                 console.error(
                   "[ConvertMessages] ERROR: Image parts not supported"
                 );
-                // Handle image parts if needed
-                throw new UnsupportedFunctionalityError({
+                console.error("[ConvertMessages] Image part details:", {
+                  type: part.type,
+                  messageIndex,
+                  role,
+                  timestamp: new Date().toISOString()
+                });
+                const error = new UnsupportedFunctionalityError({
                   functionality: "image-part",
                 });
+                console.error("[ConvertMessages] Throwing UnsupportedFunctionalityError:", {
+                  errorType: error.constructor.name,
+                  errorMessage: error.message,
+                  functionality: "image-part"
+                });
+                throw error;
               }
               default: {
                 const _exhaustiveCheck: never = part;
                 console.error(
-                  "[ConvertMessages] ERROR: Unsupported part type:",
+                  "[ConvertMessages] ERROR: Unsupported user part type:",
                   _exhaustiveCheck
                 );
-                throw new Error(`Unsupported part type: ${_exhaustiveCheck}`);
+                console.error("[ConvertMessages] Unsupported part details:", {
+                  part: _exhaustiveCheck,
+                  messageIndex,
+                  role,
+                  timestamp: new Date().toISOString()
+                });
+                const error = new Error(`Unsupported part type: ${_exhaustiveCheck}`);
+                console.error("[ConvertMessages] Throwing Error:", {
+                  errorType: error.constructor.name,
+                  errorMessage: error.message
+                });
+                throw error;
               }
             }
           })
@@ -104,7 +133,18 @@ export function convertToGatewayTransformMessages(
                 "[ConvertMessages] ERROR: Unsupported assistant part type:",
                 _exhaustiveCheck
               );
-              throw new Error(`Unsupported part type: ${_exhaustiveCheck}`);
+              console.error("[ConvertMessages] Unsupported assistant part details:", {
+                part: _exhaustiveCheck,
+                messageIndex,
+                role: "assistant",
+                timestamp: new Date().toISOString()
+              });
+              const error = new Error(`Unsupported part type: ${_exhaustiveCheck}`);
+              console.error("[ConvertMessages] Throwing Error:", {
+                errorType: error.constructor.name,
+                errorMessage: error.message
+              });
+              throw error;
             }
           }
         }
@@ -135,9 +175,21 @@ export function convertToGatewayTransformMessages(
               "[ConvertMessages] ERROR: Unsupported tool part type:",
               part.type
             );
-            throw new UnsupportedFunctionalityError({
+            console.error("[ConvertMessages] Unsupported tool part details:", {
+              partType: part.type,
+              messageIndex,
+              role: "tool",
+              timestamp: new Date().toISOString()
+            });
+            const error = new UnsupportedFunctionalityError({
               functionality: `${part.type}-part`,
             });
+            console.error("[ConvertMessages] Throwing UnsupportedFunctionalityError:", {
+              errorType: error.constructor.name,
+              errorMessage: error.message,
+              functionality: `${part.type}-part`
+            });
+            throw error;
           }
 
           console.log("[ConvertMessages] Tool result:", {
@@ -160,18 +212,44 @@ export function convertToGatewayTransformMessages(
           "[ConvertMessages] ERROR: Unsupported role:",
           _exhaustiveCheck
         );
-        throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
+        console.error("[ConvertMessages] Unsupported role details:", {
+          role: _exhaustiveCheck,
+          messageIndex,
+          timestamp: new Date().toISOString()
+        });
+        const error = new Error(`Unsupported role: ${_exhaustiveCheck}`);
+        console.error("[ConvertMessages] Throwing Error:", {
+          errorType: error.constructor.name,
+          errorMessage: error.message
+        });
+        throw error;
       }
     }
-  }
+    }
 
-  console.log(
-    "[ConvertMessages] Conversion complete. Total messages:",
-    messages.length
-  );
-  console.log(
-    "[ConvertMessages] Converted messages:",
-    JSON.stringify(messages, null, 2)
-  );
-  return messages;
+    console.log(
+      "[ConvertMessages] Conversion complete. Total messages:",
+      messages.length
+    );
+    console.log(
+      "[ConvertMessages] Converted messages:",
+      JSON.stringify(messages, null, 2)
+    );
+    console.log("[ConvertMessages] Conversion successful", {
+      inputMessages: prompt.length,
+      outputMessages: messages.length,
+      timestamp: new Date().toISOString()
+    });
+    return messages;
+  } catch (error) {
+    console.error("[ConvertMessages] FATAL ERROR in convertToGatewayTransformMessages:", {
+      errorType: error?.constructor?.name,
+      errorMessage: error?.message,
+      errorStack: error?.stack,
+      functionName: "convertToGatewayTransformMessages",
+      messageIndex,
+      timestamp: new Date().toISOString()
+    });
+    throw error;
+  }
 }

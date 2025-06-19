@@ -69,16 +69,52 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
     responseFormat,
     seed,
   }: Parameters<LanguageModelV1["doGenerate"]>[0]) {
+    console.log("[GatewayTransformChatLanguageModel] Function: getArgs");
+    console.log("[GatewayTransformChatLanguageModel] Processing parameters:", {
+      modeType: mode.type,
+      hasMaxTokens: maxTokens !== undefined,
+      temperature,
+      topP,
+      topK,
+      frequencyPenalty,
+      presencePenalty,
+      hasStopSequences: !!stopSequences,
+      hasResponseFormat: !!responseFormat,
+      seed
+    });
+    
     const warnings: LanguageModelV1CallWarning[] = [];
 
     if (mode.type !== "regular") {
-      throw new UnsupportedFunctionalityError({
+      console.error("[GatewayTransformChatLanguageModel] ERROR: Unsupported mode type:", mode.type);
+      const error = new UnsupportedFunctionalityError({
         functionality: `${mode.type} mode`,
       });
+      console.error("[GatewayTransformChatLanguageModel] Throwing UnsupportedFunctionalityError:", {
+        errorType: error.constructor.name,
+        errorMessage: error.message,
+        modeType: mode.type,
+        timestamp: new Date().toISOString()
+      });
+      throw error;
     }
 
     // Convert messages to the format expected by the Gateway Transform
-    const messages = convertToGatewayTransformMessages(prompt);
+    console.log("[GatewayTransformChatLanguageModel] Converting messages to Gateway Transform format...");
+    let messages;
+    try {
+      messages = convertToGatewayTransformMessages(prompt);
+      console.log("[GatewayTransformChatLanguageModel] Messages converted successfully");
+    } catch (conversionError) {
+      console.error("[GatewayTransformChatLanguageModel] ERROR during message conversion:", {
+        errorType: conversionError?.constructor?.name,
+        errorMessage: conversionError?.message,
+        errorStack: conversionError?.stack,
+        promptLength: prompt.length,
+        timestamp: new Date().toISOString()
+      });
+      throw conversionError;
+    }
 
     // Build the model-params object
     const modelParams: Record<string, unknown> = {
@@ -115,34 +151,93 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1["doGenerate"]>[0]
   ): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
-    const { args: body, warnings } = this.getArgs(options);
+    console.log("[GatewayTransformChatLanguageModel] Function: doGenerate");
+    console.log("[GatewayTransformChatLanguageModel] Model ID:", this.modelId);
+    console.log("[GatewayTransformChatLanguageModel] Timestamp:", new Date().toISOString());
+    
+    let body, warnings;
+    try {
+      const result = this.getArgs(options);
+      body = result.args;
+      warnings = result.warnings;
+      console.log("[GatewayTransformChatLanguageModel] Arguments prepared successfully");
+    } catch (argsError) {
+      console.error("[GatewayTransformChatLanguageModel] ERROR preparing arguments:", {
+        errorType: argsError?.constructor?.name,
+        errorMessage: argsError?.message,
+        errorStack: argsError?.stack,
+        timestamp: new Date().toISOString()
+      });
+      throw argsError;
+    }
 
     // Update headers with proper signature
-    const headers = this.config.headers();
-    const signedHeaders = signRequest(
-      headers,
-      this.config.consumerId,
-      this.config.privateKey
-    );
+    console.log("[GatewayTransformChatLanguageModel] Preparing headers...");
+    let signedHeaders;
+    try {
+      const headers = this.config.headers();
+      signedHeaders = signRequest(
+        headers,
+        this.config.consumerId,
+        this.config.privateKey
+      );
+      console.log("[GatewayTransformChatLanguageModel] Headers signed successfully");
+    } catch (signError) {
+      console.error("[GatewayTransformChatLanguageModel] ERROR signing headers:", {
+        errorType: signError?.constructor?.name,
+        errorMessage: signError?.message,
+        errorStack: signError?.stack,
+        timestamp: new Date().toISOString()
+      });
+      throw signError;
+    }
 
     // Create custom fetch if SSL should be ignored
     const customFetch = this.config.ignoreSSL
       ? createCustomFetch()
       : this.config.fetch;
 
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url(),
-      headers: combineHeaders(signedHeaders, options.headers),
-      body,
-      failedResponseHandler: gatewayTransformFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        gatewayTransformChatResponseSchema
-      ),
-      abortSignal: options.abortSignal,
-      fetch: customFetch,
-    });
+    console.log("[GatewayTransformChatLanguageModel] Making API request...");
+    console.log("[GatewayTransformChatLanguageModel] Request URL:", this.config.url());
+    console.log("[GatewayTransformChatLanguageModel] Request body:", JSON.stringify(body, null, 2));
+    
+    let responseHeaders, response;
+    try {
+      const apiResponse = await postJsonToApi({
+        url: this.config.url(),
+        headers: combineHeaders(signedHeaders, options.headers),
+        body,
+        failedResponseHandler: gatewayTransformFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          gatewayTransformChatResponseSchema
+        ),
+        abortSignal: options.abortSignal,
+        fetch: customFetch,
+      });
+      responseHeaders = apiResponse.responseHeaders;
+      response = apiResponse.value;
+      console.log("[GatewayTransformChatLanguageModel] API request successful");
+      console.log("[GatewayTransformChatLanguageModel] Response:", JSON.stringify(response, null, 2));
+    } catch (apiError) {
+      console.error("[GatewayTransformChatLanguageModel] ERROR: API request failed:", {
+        errorType: apiError?.constructor?.name,
+        errorMessage: apiError?.message,
+        errorStack: apiError?.stack,
+        url: this.config.url(),
+        modelId: this.modelId,
+        timestamp: new Date().toISOString()
+      });
+      throw apiError;
+    }
 
     const choice = response.choices[0];
+    if (!choice) {
+      console.error("[GatewayTransformChatLanguageModel] ERROR: No choice in response", {
+        response: JSON.stringify(response),
+        timestamp: new Date().toISOString()
+      });
+      throw new Error("No choice in response");
+    }
 
     return {
       text: choice.message.content ?? undefined,
@@ -166,8 +261,25 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1["doStream"]>[0]
   ): Promise<Awaited<ReturnType<LanguageModelV1["doStream"]>>> {
-    console.log("[GatewayTransformChatLanguageModel] Starting doStream...");
-    const { args: body, warnings } = this.getArgs(options);
+    console.log("[GatewayTransformChatLanguageModel] Function: doStream");
+    console.log("[GatewayTransformChatLanguageModel] Model ID:", this.modelId);
+    console.log("[GatewayTransformChatLanguageModel] Timestamp:", new Date().toISOString());
+    
+    let body, warnings;
+    try {
+      const result = this.getArgs(options);
+      body = result.args;
+      warnings = result.warnings;
+      console.log("[GatewayTransformChatLanguageModel] Stream arguments prepared successfully");
+    } catch (argsError) {
+      console.error("[GatewayTransformChatLanguageModel] ERROR preparing stream arguments:", {
+        errorType: argsError?.constructor?.name,
+        errorMessage: argsError?.message,
+        errorStack: argsError?.stack,
+        timestamp: new Date().toISOString()
+      });
+      throw argsError;
+    }
 
     // Add streaming flag
     body["model-params"].stream = true;
@@ -179,12 +291,24 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
     console.log(
       "[GatewayTransformChatLanguageModel] Getting and signing headers for streaming..."
     );
-    const headers = this.config.headers();
-    const signedHeaders = signRequest(
-      headers,
-      this.config.consumerId,
-      this.config.privateKey
-    );
+    let signedHeaders;
+    try {
+      const headers = this.config.headers();
+      signedHeaders = signRequest(
+        headers,
+        this.config.consumerId,
+        this.config.privateKey
+      );
+      console.log("[GatewayTransformChatLanguageModel] Stream headers signed successfully");
+    } catch (signError) {
+      console.error("[GatewayTransformChatLanguageModel] ERROR signing stream headers:", {
+        errorType: signError?.constructor?.name,
+        errorMessage: signError?.message,
+        errorStack: signError?.stack,
+        timestamp: new Date().toISOString()
+      });
+      throw signError;
+    }
 
     // Create custom fetch if SSL should be ignored
     const customFetch = this.config.ignoreSSL
