@@ -30,7 +30,7 @@ export function createCustomFetch(): FetchFunction {
       errorType: agentError?.constructor?.name,
       errorMessage: agentError?.message,
       errorStack: agentError?.stack,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
     throw agentError;
   }
@@ -43,12 +43,15 @@ export function createCustomFetch(): FetchFunction {
       options?.method || "GET"
     );
     console.log("[CreateCustomFetch] Request headers:", options?.headers);
-    
+
     if (options?.body) {
       console.log("[CreateCustomFetch] Request has body");
       console.log("[CreateCustomFetch] Body type:", typeof options.body);
-      if (typeof options.body === 'string') {
-        console.log("[CreateCustomFetch] Body preview:", options.body.substring(0, 200) + "...");
+      if (typeof options.body === "string") {
+        console.log(
+          "[CreateCustomFetch] Body preview:",
+          options.body.substring(0, 200) + "..."
+        );
       }
     }
 
@@ -59,20 +62,27 @@ export function createCustomFetch(): FetchFunction {
     try {
       console.log("[CreateCustomFetch] Initiating fetch request...");
       const startTime = Date.now();
-      
+
       // @ts-ignore - node-fetch types don't perfectly align with standard fetch
-      const response = await nodeFetch(url, {
+      const response = (await nodeFetch(url, {
         ...options,
         agent: isHttps ? agent : undefined,
-      }) as unknown as Response;
-      
+      })) as unknown as Response;
+
       const endTime = Date.now();
       console.log("[CreateCustomFetch] Fetch completed successfully");
-      console.log("[CreateCustomFetch] Response time:", endTime - startTime, "ms");
+      console.log(
+        "[CreateCustomFetch] Response time:",
+        endTime - startTime,
+        "ms"
+      );
       console.log("[CreateCustomFetch] Response status:", response.status);
-      console.log("[CreateCustomFetch] Response status text:", response.statusText);
+      console.log(
+        "[CreateCustomFetch] Response status text:",
+        response.statusText
+      );
       console.log("[CreateCustomFetch] Response headers:", response.headers);
-      
+
       return response;
     } catch (fetchError) {
       console.error("[CreateCustomFetch] ERROR during fetch:", {
@@ -81,7 +91,7 @@ export function createCustomFetch(): FetchFunction {
         errorStack: fetchError?.stack,
         url: url.toString(),
         method: options?.method || "GET",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
       console.error("[CreateCustomFetch] Possible causes:");
       console.error("[CreateCustomFetch]   - Network connectivity issues");
