@@ -2,8 +2,16 @@
 /*
 Test script for the Gateway Transform AI SDK provider.
 
-Example invocation with LLM auth environment variables:
+Example invocation with minimal configuration:
 
+GATEWAY_TRANSFORM_BASE_URL="https://your-gateway-url.com" \
+LLM_AUTH_CONSUMER_ID="my-consumer-id" \
+NODE_ENV=development \
+npx tsx test-gateway.ts
+
+Example invocation with full LLM auth environment variables:
+
+GATEWAY_TRANSFORM_BASE_URL="https://your-gateway-url.com" \
 LLM_AUTH_CONSUMER_ID="my-consumer-id" \
 # NOTE: This is a test private key.
 LLM_AUTH_PK_VALUE="-----BEGIN RSA PRIVATE KEY-----
@@ -51,8 +59,67 @@ LLM_AUTH_CONSUMER_ID without the other LLM_AUTH variables.
 import { generateText, streamText } from "ai";
 import { createGatewayTransform, isLlmAuthClient } from "./src/index";
 
+interface TestResult {
+  name: string;
+  status: "passed" | "failed";
+  duration: number;
+  error?: string;
+}
+
+const testResults: TestResult[] = [];
+
+async function runTest(
+  testName: string,
+  testConfig: any,
+  testFunc: () => Promise<void>
+) {
+  console.log("\n\n========================================");
+  console.log(`--- ${testName} ---`);
+  console.log("========================================\n");
+  
+  console.log("Test Configuration:");
+  console.log(JSON.stringify(testConfig, null, 2));
+  
+  const startTime = Date.now();
+  
+  try {
+    await testFunc();
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    console.log(`\n✅ ${testName} completed successfully!`);
+    console.log(`Total Time: ${duration}ms`);
+    
+    testResults.push({
+      name: testName,
+      status: "passed",
+      duration
+    });
+  } catch (error) {
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    console.error(`\n❌ ${testName} failed!`);
+    console.error(`Total Time: ${duration}ms`);
+    console.error("Error type:", error?.constructor?.name);
+    console.error("Error message:", error?.message);
+    console.error("Error stack:", error?.stack);
+    
+    // Check if it's an echo server response
+    if (error instanceof Error && error.message.includes("task")) {
+      console.log("\n🔍 Echo Server Response Detected!");
+      console.log("Request was properly formatted and sent.");
+    }
+    
+    testResults.push({
+      name: testName,
+      status: "failed",
+      duration,
+      error: error?.message || "Unknown error"
+    });
+  }
+}
+
 async function testGatewayTransformProvider() {
-  console.log("=== Gateway Transform AI SDK Provider Test ===\n");
+  console.log("=== Gateway Transform AI SDK Provider Test Suite ===\n");
   console.log("Test started at:", new Date().toISOString());
   console.log("Node version:", process.version);
   console.log("Platform:", process.platform);
@@ -108,142 +175,410 @@ async function testGatewayTransformProvider() {
   });
   console.log("Provider created successfully!");
 
-  // Test 1: Non-streaming text generation
-  console.log("\n\n========================================");
-  console.log("--- Test 1: Non-streaming Text Generation ---");
-  console.log("========================================\n");
-
-  const test1Messages = [
-    { role: "system", content: "You are a helpful assistant." },
-    { role: "user", content: "Say hello!" },
-  ] as const;
-
-  console.log("Test 1 Configuration:");
-  console.log("  Model: gpt-4o");
-  console.log("  Temperature: 0.7");
-  console.log("  Max Tokens: 100");
-  console.log("  Messages:", JSON.stringify(test1Messages, null, 2));
-
-  try {
-    console.log("\nStarting non-streaming request...");
-    const startTime = Date.now();
-
-    const result = await generateText({
-      model: gatewayTransform("gpt-4o"),
-      messages: [...test1Messages],
+  // Test 1: Basic Non-streaming with System Message
+  await runTest(
+    "Test 1: Basic Non-streaming with System Message",
+    {
+      model: "gpt-4o",
+      streaming: false,
       temperature: 0.7,
       maxTokens: 100,
-    });
+      messages: [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: "Say hello!" },
+      ],
+    },
+    async () => {
+      console.log("\nStarting basic non-streaming request with system message...");
+      
+      const result = await generateText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          { role: "system", content: "You are a helpful assistant." },
+          { role: "user", content: "Say hello!" },
+        ],
+        temperature: 0.7,
+        maxTokens: 100,
+      });
 
-    const endTime = Date.now();
-
-    console.log(`\n✅ Non-streaming test completed successfully!`);
-    console.log(`Response Time: ${endTime - startTime}ms`);
-    console.log("Generated Text:", result.text);
-    console.log("Finish Reason:", result.finishReason);
-    console.log("Usage:", result.usage);
-  } catch (error) {
-    console.error("\n❌ Non-streaming test failed!");
-    console.error("Error type:", error?.constructor?.name);
-    console.error("Error message:", error?.message);
-    console.error("Error stack:", error?.stack);
-
-    // Check if it's an echo server response
-    if (error instanceof Error) {
-      console.log("\n--- Error Analysis ---");
-
-      // Try to parse error response
-      try {
-        const errorBody = JSON.parse(error.message);
-        console.log("Parsed error body:", JSON.stringify(errorBody, null, 2));
-
-        if (errorBody.task || error.message.includes("task")) {
-          console.log("\n🔍 Echo Server Response Detected!");
-          console.log("This appears to be an echo server response.");
-          console.log("The gateway-transform provider successfully:");
-          console.log("  ✓ Created and signed the request");
-          console.log("  ✓ Formatted it in gateway-transform format");
-          console.log("  ✓ Sent it to the server");
-          console.log("\n✅ Provider is working correctly!");
-          console.log(
-            "When connected to a real gateway, it will parse actual LLM responses."
-          );
-        }
-      } catch (parseError) {
-        console.log("Could not parse error as JSON:", parseError.message);
-      }
+      console.log("\nResponse received:");
+      console.log("Generated Text:", result.text);
+      console.log("Finish Reason:", result.finishReason);
+      console.log("Usage:", result.usage);
     }
-  }
+  );
 
-  // Test 2: Streaming text generation
-  console.log("\n\n========================================");
-  console.log("--- Test 2: Streaming Text Generation ---");
-  console.log("========================================\n");
-
-  const test2Messages = [{ role: "user", content: "Count to 5" }] as const;
-
-  console.log("Test 2 Configuration:");
-  console.log("  Model: gpt-4o");
-  console.log("  Temperature: 0.5");
-  console.log("  Messages:", JSON.stringify(test2Messages, null, 2));
-
-  try {
-    console.log("\nStarting streaming request...");
-    const startTime = Date.now();
-
-    const { textStream } = await streamText({
-      model: gatewayTransform("gpt-4o"),
-      messages: [...test2Messages],
+  // Test 2: Multi-turn Conversation Non-streaming
+  await runTest(
+    "Test 2: Multi-turn Conversation (Non-streaming)",
+    {
+      model: "gpt-4o",
+      streaming: false,
       temperature: 0.5,
-    });
+      maxTokens: 150,
+      messages: [
+        { role: "system", content: "You are a math teacher." },
+        { role: "user", content: "What is 2 + 2?" },
+        { role: "assistant", content: "2 + 2 equals 4." },
+        { role: "user", content: "And what is 4 + 4?" },
+      ],
+    },
+    async () => {
+      console.log("\nStarting multi-turn conversation test...");
+      
+      const result = await generateText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          { role: "system", content: "You are a math teacher." },
+          { role: "user", content: "What is 2 + 2?" },
+          { role: "assistant", content: "2 + 2 equals 4." },
+          { role: "user", content: "And what is 4 + 4?" },
+        ],
+        temperature: 0.5,
+        maxTokens: 150,
+      });
 
-    console.log("\nStream started, receiving chunks:");
-    console.log("---");
-
-    let chunkCount = 0;
-    for await (const chunk of textStream) {
-      chunkCount++;
-      console.log(`[Chunk ${chunkCount}]: "${chunk}"`);
-      process.stdout.write(chunk);
+      console.log("\nConversation response:");
+      console.log("Generated Text:", result.text);
+      console.log("Finish Reason:", result.finishReason);
+      console.log("Usage:", result.usage);
     }
+  );
 
-    const endTime = Date.now();
+  // Test 3: No Temperature (Deterministic)
+  await runTest(
+    "Test 3: No Temperature (Deterministic)",
+    {
+      model: "gpt-4o",
+      streaming: false,
+      temperature: 0,
+      maxTokens: 50,
+      messages: [
+        { role: "user", content: "What is the capital of France?" },
+      ],
+    },
+    async () => {
+      console.log("\nStarting deterministic request (temperature=0)...");
+      
+      const result = await generateText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          { role: "user", content: "What is the capital of France?" },
+        ],
+        temperature: 0,
+        maxTokens: 50,
+      });
 
-    console.log("\n---");
-    console.log(`\n✅ Streaming test completed successfully!`);
-    console.log(`Total chunks received: ${chunkCount}`);
-    console.log(`Response Time: ${endTime - startTime}ms`);
-  } catch (error) {
-    console.error("\n❌ Streaming test failed!");
-    console.error("Error type:", error?.constructor?.name);
-    console.error("Error message:", error?.message);
-    console.error("Error stack:", error?.stack);
+      console.log("\nDeterministic response:");
+      console.log("Generated Text:", result.text);
+      console.log("Finish Reason:", result.finishReason);
+      console.log("Temperature: 0 (deterministic)");
+    }
+  );
 
-    // Check if it's an echo server response
-    if (error instanceof Error) {
-      console.log("\n--- Error Analysis ---");
+  // Test 4: High Temperature (Creative)
+  await runTest(
+    "Test 4: High Temperature (Creative)",
+    {
+      model: "gpt-4o",
+      streaming: false,
+      temperature: 1.5,
+      maxTokens: 100,
+      messages: [
+        { role: "system", content: "You are a creative storyteller." },
+        { role: "user", content: "Tell me about a magical forest." },
+      ],
+    },
+    async () => {
+      console.log("\nStarting creative request (temperature=1.5)...");
+      
+      const result = await generateText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          { role: "system", content: "You are a creative storyteller." },
+          { role: "user", content: "Tell me about a magical forest." },
+        ],
+        temperature: 1.5,
+        maxTokens: 100,
+      });
 
-      // Try to parse error response
-      try {
-        const errorBody = JSON.parse(error.message);
-        console.log("Parsed error body:", JSON.stringify(errorBody, null, 2));
+      console.log("\nCreative response:");
+      console.log("Generated Text:", result.text);
+      console.log("Temperature: 1.5 (highly creative)");
+    }
+  );
 
-        if (errorBody.task || error.message.includes("task")) {
-          console.log("\n🔍 Echo Server Response Detected!");
-          console.log("The streaming request was properly formatted.");
-          console.log("✅ Streaming capability is working correctly!");
-        }
-      } catch (parseError) {
-        console.log("Could not parse error as JSON:", parseError.message);
+  // Test 5: Streaming with System Message
+  await runTest(
+    "Test 5: Streaming with System Message",
+    {
+      model: "gpt-4o",
+      streaming: true,
+      temperature: 0.7,
+      messages: [
+        { role: "system", content: "You are a counting assistant." },
+        { role: "user", content: "Count from 1 to 5 slowly." },
+      ],
+    },
+    async () => {
+      console.log("\nStarting streaming request with system message...");
+      
+      const { textStream } = await streamText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          { role: "system", content: "You are a counting assistant." },
+          { role: "user", content: "Count from 1 to 5 slowly." },
+        ],
+        temperature: 0.7,
+      });
+
+      console.log("\nStream started, receiving chunks:");
+      console.log("---");
+      
+      let chunkCount = 0;
+      let fullText = "";
+      for await (const chunk of textStream) {
+        chunkCount++;
+        console.log(`[Chunk ${chunkCount}]: "${chunk}"`);
+        fullText += chunk;
       }
+      
+      console.log("---");
+      console.log(`Total chunks received: ${chunkCount}`);
+      console.log(`Full streamed text: "${fullText}"`);
     }
-  }
+  );
+
+  // Test 6: Streaming Multi-turn Conversation
+  await runTest(
+    "Test 6: Streaming Multi-turn Conversation",
+    {
+      model: "gpt-4o",
+      streaming: true,
+      temperature: 0.8,
+      messages: [
+        { role: "system", content: "You are a helpful coding assistant." },
+        { role: "user", content: "How do I write a for loop in Python?" },
+        { role: "assistant", content: "In Python, you can write a for loop using the following syntax:\n\n```python\nfor item in iterable:\n    # code to execute\n```" },
+        { role: "user", content: "Now show me a while loop." },
+      ],
+    },
+    async () => {
+      console.log("\nStarting streaming multi-turn conversation...");
+      
+      const { textStream } = await streamText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          { role: "system", content: "You are a helpful coding assistant." },
+          { role: "user", content: "How do I write a for loop in Python?" },
+          { role: "assistant", content: "In Python, you can write a for loop using the following syntax:\n\n```python\nfor item in iterable:\n    # code to execute\n```" },
+          { role: "user", content: "Now show me a while loop." },
+        ],
+        temperature: 0.8,
+      });
+
+      console.log("\nStreaming conversation response:");
+      console.log("---");
+      
+      let chunkCount = 0;
+      let fullText = "";
+      for await (const chunk of textStream) {
+        chunkCount++;
+        console.log(`[Chunk ${chunkCount}]: "${chunk}"`);
+        fullText += chunk;
+      }
+      
+      console.log("---");
+      console.log(`Total chunks: ${chunkCount}`);
+      console.log(`Full response: "${fullText}"`);
+    }
+  );
+
+  // Test 7: No System Message
+  await runTest(
+    "Test 7: No System Message (User Only)",
+    {
+      model: "gpt-4o",
+      streaming: false,
+      temperature: 0.7,
+      maxTokens: 80,
+      messages: [
+        { role: "user", content: "Explain quantum computing in one sentence." },
+      ],
+    },
+    async () => {
+      console.log("\nStarting request without system message...");
+      
+      const result = await generateText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          { role: "user", content: "Explain quantum computing in one sentence." },
+        ],
+        temperature: 0.7,
+        maxTokens: 80,
+      });
+
+      console.log("\nResponse without system context:");
+      console.log("Generated Text:", result.text);
+      console.log("Note: No system message was provided");
+    }
+  );
+
+  // Test 8: Multiple System Messages
+  await runTest(
+    "Test 8: Complex System Context",
+    {
+      model: "gpt-4o",
+      streaming: false,
+      temperature: 0.6,
+      maxTokens: 200,
+      messages: [
+        { role: "system", content: "You are an expert chef. You specialize in Italian cuisine. Always be enthusiastic about food." },
+        { role: "user", content: "What's your favorite pasta dish?" },
+      ],
+    },
+    async () => {
+      console.log("\nStarting request with complex system context...");
+      
+      const result = await generateText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          { role: "system", content: "You are an expert chef. You specialize in Italian cuisine. Always be enthusiastic about food." },
+          { role: "user", content: "What's your favorite pasta dish?" },
+        ],
+        temperature: 0.6,
+        maxTokens: 200,
+      });
+
+      console.log("\nResponse with detailed system context:");
+      console.log("Generated Text:", result.text);
+      console.log("System prompt included: role definition + expertise + personality");
+    }
+  );
+
+  // Test 9: Streaming without Temperature
+  await runTest(
+    "Test 9: Streaming without Temperature Parameter",
+    {
+      model: "gpt-4o",
+      streaming: true,
+      temperature: "default",
+      messages: [
+        { role: "user", content: "List three primary colors." },
+      ],
+    },
+    async () => {
+      console.log("\nStarting streaming without explicit temperature...");
+      
+      const { textStream } = await streamText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          { role: "user", content: "List three primary colors." },
+        ],
+        // No temperature specified - using model default
+      });
+
+      console.log("\nStreaming with default temperature:");
+      console.log("---");
+      
+      let chunkCount = 0;
+      for await (const chunk of textStream) {
+        chunkCount++;
+        console.log(`[Chunk ${chunkCount}]: "${chunk}"`);
+      }
+      
+      console.log("---");
+      console.log(`Total chunks: ${chunkCount}`);
+      console.log("Temperature: Using model default");
+    }
+  );
+
+  // Test 10: Long Multi-turn Conversation
+  await runTest(
+    "Test 10: Extended Multi-turn Conversation",
+    {
+      model: "gpt-4o",
+      streaming: false,
+      temperature: 0.7,
+      maxTokens: 150,
+      messages: [
+        { role: "system", content: "You are a travel guide." },
+        { role: "user", content: "I want to visit Europe." },
+        { role: "assistant", content: "Europe is a wonderful destination! What specific countries or cities are you interested in?" },
+        { role: "user", content: "I'm thinking about Paris and Rome." },
+        { role: "assistant", content: "Excellent choices! Paris and Rome are two of Europe's most iconic cities. Paris offers the Eiffel Tower, Louvre Museum, and amazing cuisine. Rome has the Colosseum, Vatican City, and incredible history." },
+        { role: "user", content: "How many days should I spend in each city?" },
+      ],
+    },
+    async () => {
+      console.log("\nStarting extended conversation test...");
+      
+      const result = await generateText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          { role: "system", content: "You are a travel guide." },
+          { role: "user", content: "I want to visit Europe." },
+          { role: "assistant", content: "Europe is a wonderful destination! What specific countries or cities are you interested in?" },
+          { role: "user", content: "I'm thinking about Paris and Rome." },
+          { role: "assistant", content: "Excellent choices! Paris and Rome are two of Europe's most iconic cities. Paris offers the Eiffel Tower, Louvre Museum, and amazing cuisine. Rome has the Colosseum, Vatican City, and incredible history." },
+          { role: "user", content: "How many days should I spend in each city?" },
+        ],
+        temperature: 0.7,
+        maxTokens: 150,
+      });
+
+      console.log("\nExtended conversation response:");
+      console.log("Generated Text:", result.text);
+      console.log("Conversation turns: 3 user messages, 2 assistant messages");
+    }
+  );
 
   console.log("\n\n========================================");
-  console.log("=== Test Summary ===");
+  console.log("=== Test Results Summary ===");
   console.log("========================================");
   console.log("\nAll tests completed at:", new Date().toISOString());
-  console.log("\nThe Gateway Transform provider has been tested.");
+  
+  // Display results table
+  console.log("\n┌─────┬──────────────────────────────────────────────────────┬──────────┬──────────┐");
+  console.log("│  #  │ Test Name                                            │  Status  │ Duration │");
+  console.log("├─────┼──────────────────────────────────────────────────────┼──────────┼──────────┤");
+  
+  testResults.forEach((result, index) => {
+    const num = String(index + 1).padEnd(3);
+    const name = result.name.padEnd(52);
+    const status = result.status === "passed" 
+      ? "✅ PASS".padEnd(8)
+      : "❌ FAIL".padEnd(8);
+    const duration = `${result.duration}ms`.padStart(8);
+    
+    console.log(`│ ${num} │ ${name} │ ${status} │ ${duration} │`);
+  });
+  
+  console.log("└─────┴──────────────────────────────────────────────────────┴──────────┴──────────┘");
+  
+  // Summary statistics
+  const passed = testResults.filter(r => r.status === "passed").length;
+  const failed = testResults.filter(r => r.status === "failed").length;
+  const totalDuration = testResults.reduce((sum, r) => sum + r.duration, 0);
+  
+  console.log(`\nTest Summary:`);
+  console.log(`  Total Tests: ${testResults.length}`);
+  console.log(`  Passed: ${passed} (${Math.round(passed / testResults.length * 100)}%)`);
+  console.log(`  Failed: ${failed} (${Math.round(failed / testResults.length * 100)}%)`);
+  console.log(`  Total Duration: ${totalDuration}ms`);
+  
+  // Show failed test details if any
+  if (failed > 0) {
+    console.log("\n❌ Failed Tests:");
+    testResults
+      .filter(r => r.status === "failed")
+      .forEach(result => {
+        console.log(`\n  ${result.name}:`);
+        console.log(`    Error: ${result.error}`);
+      });
+  }
+  
+  console.log("\nThe Gateway Transform provider has been thoroughly tested.");
   console.log("When connected to a real gateway endpoint,");
   console.log("it will handle actual LLM responses properly.");
   console.log("\nFor debugging issues:");
