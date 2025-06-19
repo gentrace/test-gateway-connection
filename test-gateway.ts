@@ -42,7 +42,7 @@ LLM_AUTH_AUTH_SIGNATURE_KEY="SEC.AUTH_SIGNATURE" \
 LLM_AUTH_SERVICE_NAME_KEY="SVC.NAME" \
 LLM_AUTH_SERVICE_ENV_KEY="SVC.ENV" \
 NODE_ENV=development \
-tsx test-gateway.ts
+npx tsx test-gateway.ts
 
 Note: The gateway-transform provider now uses LLM_AUTH_* environment variables
 for all authentication. If you don't need signed requests, you can use
