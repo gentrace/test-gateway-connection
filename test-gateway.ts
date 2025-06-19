@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import 'dotenv/config';
 /*
 Test script for the Gateway Transform AI SDK provider.
 
@@ -171,7 +172,7 @@ async function testGatewayTransformProvider() {
   const gatewayTransform = createGatewayTransform({
     baseURL,
     // The provider will use LLM_AUTH_CONSUMER_ID and LLM_AUTH_PK_VALUE from environment
-    ignoreSSL: false,
+    ignoreSSL: true,
   });
   console.log("Provider created successfully!");
 
