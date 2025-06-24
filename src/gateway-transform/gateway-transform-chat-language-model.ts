@@ -19,6 +19,7 @@ import { GatewayTransformChatSettings } from "./gateway-transform-chat-settings"
 import { gatewayTransformFailedResponseHandler } from "./gateway-transform-error";
 import { mapGatewayTransformFinishReason } from "./map-gateway-transform-finish-reason";
 import { signRequest } from "./sign-request";
+import { createCustomEventSourceResponseHandler } from "./custom-stream-handler";
 
 type GatewayTransformConfig = {
   provider: string;
@@ -341,7 +342,7 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
       headers: combineHeaders(signedHeaders, options.headers),
       body,
       failedResponseHandler: gatewayTransformFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(
+      successfulResponseHandler: createCustomEventSourceResponseHandler(
         gatewayTransformChatStreamChunkSchema
       ),
       abortSignal: options.abortSignal,
