@@ -30,36 +30,65 @@ export function convertToGatewayTransformMessages(
 
       case "user": {
         console.log("[ConvertMessages] User message parts:", content.length);
-        const userContent = content
-          .map((part) => {
-            console.log(
-              "[ConvertMessages] Processing user part type:",
-              part.type
-            );
+        
+        // Check if content has mixed types (text + images)
+        const hasImages = content.some(part => part.type === "image");
+        const hasText = content.some(part => part.type === "text");
+        
+        if (hasImages && hasText) {
+          // Mixed content - create array format
+          const contentArray = [];
+          
+          for (const part of content) {
             switch (part.type) {
               case "text": {
-                console.log("[ConvertMessages] Text part:", part.text);
-                return part.text;
+                console.log("[ConvertMessages] Adding text part:", part.text);
+                contentArray.push({ type: "text", text: part.text });
+                break;
               }
               case "image": {
-                console.error(
-                  "[ConvertMessages] ERROR: Image parts not supported"
-                );
-                console.error("[ConvertMessages] Image part details:", {
-                  type: part.type,
-                  messageIndex,
-                  role,
-                  timestamp: new Date().toISOString()
-                });
-                const error = new UnsupportedFunctionalityError({
-                  functionality: "image-part",
-                });
-                console.error("[ConvertMessages] Throwing UnsupportedFunctionalityError:", {
-                  errorType: error.constructor.name,
-                  errorMessage: error.message,
-                  functionality: "image-part"
-                });
-                throw error;
+                console.log("[ConvertMessages] Processing image part");
+                if (part.image instanceof URL) {
+                  // External URL
+                  console.log("[ConvertMessages] Adding image_url:", part.image.href);
+                  contentArray.push({ 
+                    type: "image_url", 
+                    image_url: { url: part.image.href } 
+                  });
+                } else if (typeof part.image === "string") {
+                  // Base64 encoded image or data URL
+                  console.log("[ConvertMessages] Processing string image");
+                  if (part.image.startsWith("data:")) {
+                    // Extract base64 from data URL
+                    const base64Match = part.image.match(/^data:image\/[^;]+;base64,(.+)$/);
+                    if (base64Match) {
+                      console.log("[ConvertMessages] Extracted base64 from data URL");
+                      contentArray.push({ 
+                        type: "image_base64", 
+                        image_base64: base64Match[1] 
+                      });
+                    } else {
+                      console.error("[ConvertMessages] Invalid data URL format");
+                      throw new Error("Invalid data URL format");
+                    }
+                  } else {
+                    // Assume it's already base64
+                    console.log("[ConvertMessages] Adding image_base64");
+                    contentArray.push({ 
+                      type: "image_base64", 
+                      image_base64: part.image 
+                    });
+                  }
+                } else {
+                  // Handle Uint8Array by converting to base64
+                  console.log("[ConvertMessages] Converting Uint8Array to base64");
+                  const base64 = Buffer.from(part.image).toString("base64");
+                  contentArray.push({ 
+                    type: "image_base64", 
+                    image_base64: base64 
+                  });
+                }
+                break;
               }
               default: {
                 const _exhaustiveCheck: never = part;
@@ -67,28 +96,71 @@ export function convertToGatewayTransformMessages(
                   "[ConvertMessages] ERROR: Unsupported user part type:",
                   _exhaustiveCheck
                 );
-                console.error("[ConvertMessages] Unsupported part details:", {
-                  part: _exhaustiveCheck,
-                  messageIndex,
-                  role,
-                  timestamp: new Date().toISOString()
-                });
-                const error = new Error(`Unsupported part type: ${_exhaustiveCheck}`);
-                console.error("[ConvertMessages] Throwing Error:", {
-                  errorType: error.constructor.name,
-                  errorMessage: error.message
-                });
-                throw error;
+                throw new Error(`Unsupported part type: ${_exhaustiveCheck}`);
               }
             }
-          })
-          .join("");
-
-        console.log("[ConvertMessages] Final user content:", userContent);
-        messages.push({
-          role: "user",
-          content: userContent,
-        });
+          }
+          
+          console.log("[ConvertMessages] Final user content array:", contentArray);
+          messages.push({
+            role: "user",
+            content: contentArray,
+          });
+        } else if (hasText && !hasImages) {
+          // Text only - use string format
+          const textContent = content
+            .filter(part => part.type === "text")
+            .map(part => part.text)
+            .join("");
+            
+          console.log("[ConvertMessages] Final user content (text only):", textContent);
+          messages.push({
+            role: "user",
+            content: textContent,
+          });
+        } else if (hasImages && !hasText) {
+          // Images only - still need array format
+          const contentArray = [];
+          
+          for (const part of content) {
+            if (part.type === "image") {
+              if (part.image instanceof URL) {
+                contentArray.push({ 
+                  type: "image_url", 
+                  image_url: { url: part.image.href } 
+                });
+              } else if (typeof part.image === "string") {
+                if (part.image.startsWith("data:")) {
+                  const base64Match = part.image.match(/^data:image\/[^;]+;base64,(.+)$/);
+                  if (base64Match) {
+                    contentArray.push({ 
+                      type: "image_base64", 
+                      image_base64: base64Match[1] 
+                    });
+                  } else {
+                    throw new Error("Invalid data URL format");
+                  }
+                } else {
+                  contentArray.push({ 
+                    type: "image_base64", 
+                    image_base64: part.image 
+                  });
+                }
+              } else {
+                const base64 = Buffer.from(part.image).toString("base64");
+                contentArray.push({ 
+                  type: "image_base64", 
+                  image_base64: base64 
+                });
+              }
+            }
+          }
+          
+          messages.push({
+            role: "user",
+            content: contentArray,
+          });
+        }
         break;
       }
 

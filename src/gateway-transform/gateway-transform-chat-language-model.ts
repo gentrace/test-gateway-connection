@@ -171,6 +171,10 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
       throw argsError;
     }
 
+    // Add streaming flag at top level (false for non-streaming)
+    body.streaming = false;
+    console.log("[GatewayTransformChatLanguageModel] Added streaming flag (false) to top level of body");
+
     // Update headers with proper signature
     console.log("[GatewayTransformChatLanguageModel] Preparing headers...");
     let signedHeaders;
@@ -281,10 +285,10 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
       throw argsError;
     }
 
-    // Add streaming flag
-    body["model-params"].stream = true;
+    // Add streaming flag at top level
+    body.streaming = true;
     console.log(
-      "[GatewayTransformChatLanguageModel] Added streaming flag to body"
+      "[GatewayTransformChatLanguageModel] Added streaming flag to top level of body"
     );
 
     // Update headers with proper signature
