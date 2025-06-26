@@ -16,11 +16,17 @@ export function createCustomEventSourceResponseHandler<T>(
       throw new Error("Response body is empty");
     }
 
+    // Extract response headers
+    const responseHeaders: Record<string, string> = {};
+    response.headers.forEach((value, key) => {
+      responseHeaders[key] = value;
+    });
+
     const reader = stream.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
 
-    return new ReadableStream<ParseResult<T>>({
+    const parsedStream = new ReadableStream<ParseResult<T>>({
       async pull(controller) {
         try {
           const { done, value } = await reader.read();
@@ -92,5 +98,11 @@ export function createCustomEventSourceResponseHandler<T>(
         reader.releaseLock();
       },
     });
+
+    // Return the expected format with both value and responseHeaders
+    return {
+      value: parsedStream,
+      responseHeaders,
+    };
   };
 }
