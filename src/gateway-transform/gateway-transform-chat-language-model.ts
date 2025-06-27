@@ -19,7 +19,6 @@ import { GatewayTransformChatSettings } from "./gateway-transform-chat-settings"
 import { gatewayTransformFailedResponseHandler } from "./gateway-transform-error";
 import { mapGatewayTransformFinishReason } from "./map-gateway-transform-finish-reason";
 import { signRequest } from "./sign-request";
-import { createCustomEventSourceResponseHandler } from "./custom-stream-handler";
 
 type GatewayTransformConfig = {
   provider: string;
@@ -345,7 +344,7 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
       headers: combineHeaders(signedHeaders, options.headers),
       body,
       failedResponseHandler: gatewayTransformFailedResponseHandler,
-      successfulResponseHandler: createCustomEventSourceResponseHandler(
+      successfulResponseHandler: createEventSourceResponseHandler(
         gatewayTransformChatStreamChunkSchema
       ),
       abortSignal: options.abortSignal,
@@ -451,7 +450,7 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
             );
 
             // Handle ParseResult structure
-            if (!chunk.success) {
+            if (chunk.success === false) {
               console.error(
                 "[GatewayTransformChatLanguageModel] Stream parse error:",
                 chunk.error
