@@ -228,6 +228,9 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
         errorType: apiError?.constructor?.name,
         errorMessage: apiError?.message,
         errorStack: apiError?.stack,
+        errorData: apiError?.data,
+        errorResponseBody: apiError?.responseBody,
+        errorResponse: apiError?.response,
         url: this.config.url(),
         modelId: this.modelId,
         timestamp: new Date().toISOString()

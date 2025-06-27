@@ -83,6 +83,27 @@ export function createCustomFetch(): FetchFunction {
       );
       console.log("[CreateCustomFetch] Response headers:", response.headers);
 
+      // Log response body for error responses
+      if (response.status >= 400) {
+        console.log("[CreateCustomFetch] Error response detected, attempting to read body...");
+        try {
+          // Clone the response so we can read it without consuming it
+          const clonedResponse = response.clone();
+          const responseText = await clonedResponse.text();
+          console.log("[CreateCustomFetch] Error response body (raw):", responseText);
+          
+          // Try to parse as JSON
+          try {
+            const responseJson = JSON.parse(responseText);
+            console.log("[CreateCustomFetch] Error response body (JSON):", JSON.stringify(responseJson, null, 2));
+          } catch (jsonError) {
+            console.log("[CreateCustomFetch] Response body is not valid JSON");
+          }
+        } catch (bodyError) {
+          console.error("[CreateCustomFetch] Failed to read error response body:", bodyError?.message);
+        }
+      }
+
       return response;
     } catch (fetchError) {
       console.error("[CreateCustomFetch] ERROR during fetch:", {

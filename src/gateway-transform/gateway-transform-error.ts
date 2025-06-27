@@ -21,5 +21,8 @@ export const gatewayTransformFailedResponseHandler: Parameters<
     : never
   : never = createJsonErrorResponseHandler({
   errorSchema: gatewayTransformErrorDataSchema,
-  errorToMessage: (data) => data.error.message,
+  errorToMessage: (data) => {
+    console.error("[GatewayTransformError] Error response data:", JSON.stringify(data, null, 2));
+    return data.error.message;
+  },
 });
