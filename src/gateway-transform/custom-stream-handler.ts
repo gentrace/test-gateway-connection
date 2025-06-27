@@ -10,7 +10,7 @@ export function createCustomEventSourceResponseHandler<T>(
 ): ResponseHandler<ReadableStream<ParseResult<T>>> {
   return async ({ response }) => {
     console.log("[CustomStreamHandler] Processing streaming response");
-    
+
     const stream = response.body;
     if (!stream) {
       throw new Error("Response body is empty");
@@ -30,7 +30,7 @@ export function createCustomEventSourceResponseHandler<T>(
       async pull(controller) {
         try {
           const { done, value } = await reader.read();
-          
+
           if (done) {
             console.log("[CustomStreamHandler] Stream complete");
             controller.close();
@@ -39,25 +39,25 @@ export function createCustomEventSourceResponseHandler<T>(
 
           // Decode the chunk and add to buffer
           buffer += decoder.decode(value, { stream: true });
-          
+
           // Process complete SSE messages
-          const lines = buffer.split('\n');
+          const lines = buffer.split("\n");
           buffer = lines.pop() || ""; // Keep incomplete line in buffer
 
           for (const line of lines) {
             const trimmedLine = line.trim();
-            
+
             // Skip empty lines and comments
-            if (!trimmedLine || trimmedLine.startsWith(':')) {
+            if (!trimmedLine || trimmedLine.startsWith(":")) {
               continue;
             }
 
             // Handle data lines
-            if (trimmedLine.startsWith('data: ')) {
+            if (trimmedLine.startsWith("data: ")) {
               const data = trimmedLine.slice(6);
-              
+
               // Skip [DONE] message
-              if (data === '[DONE]') {
+              if (data === "[DONE]") {
                 console.log("[CustomStreamHandler] Received [DONE] signal");
                 continue;
               }
@@ -65,20 +65,29 @@ export function createCustomEventSourceResponseHandler<T>(
               try {
                 const parsed = JSON.parse(data);
                 console.log("[CustomStreamHandler] Parsed chunk:", parsed);
-                
+
                 // Validate against schema
                 const result = chunkSchema.safeParse(parsed);
-                
+
                 if (result.success) {
                   controller.enqueue({
-                    type: "success",
+                    success: true,
                     value: result.data,
                   });
                 } else {
-                  console.error("[CustomStreamHandler] Schema validation failed:", result.error);
+                  console.error(
+                    "[CustomStreamHandler] Schema validation failed:",
+                    result.error
+                  );
+                  // Create a simple error that matches the expected type
+                  const validationError = new Error(`Schema validation failed: ${result.error.message}`);
+                  validationError.name = 'TypeValidationError';
+                  (validationError as any).value = parsed;
+                  (validationError as any).cause = result.error;
+                  
                   controller.enqueue({
-                    type: "error",
-                    error: result.error,
+                    success: false,
+                    error: validationError as any,
                   });
                 }
               } catch (error) {
