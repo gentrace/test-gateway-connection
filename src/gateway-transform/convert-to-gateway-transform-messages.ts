@@ -176,49 +176,35 @@ export function convertToGatewayTransformMessages(
                     );
 
                     if (imageString.startsWith("data:")) {
-                      // Extract base64 from data URL
-                      const base64Match = imageString.match(
-                        /^data:image\/[^;]+;base64,(.+)$/
-                      );
-                      if (base64Match) {
-                        console.log(
-                          "[ConvertMessages] Extracted base64 from data URL:",
-                          {
-                            originalLength: imageString.length,
-                            base64Length: base64Match[1].length,
-                            mimeTypeMatch:
-                              imageString.match(/^data:image\/([^;]+)/)?.[1],
-                          }
-                        );
-                        contentArray.push({
-                          type: "image_base64",
-                          image_base64: base64Match[1],
-                        });
-                      } else {
-                        console.error(
-                          "[ConvertMessages] Invalid data URL format details:",
-                          {
-                            stringLength: imageString.length,
-                            prefix: imageString.substring(0, 100),
-                            hasDataPrefix: imageString.startsWith("data:"),
-                            hasBase64: imageString.includes("base64"),
-                          }
-                        );
-                        throw new Error("Invalid data URL format");
-                      }
-                    } else {
-                      // Assume it's already base64
+                      // Already a data URL, use it as-is
                       console.log(
-                        "[ConvertMessages] Adding image_base64 details:",
+                        "[ConvertMessages] Using data URL as image_url:",
                         {
-                          type: "image_base64",
-                          base64Length: imageString.length,
-                          base64Preview: imageString.substring(0, 50) + "...",
+                          type: "image_url",
+                          dataUrlLength: imageString.length,
+                          dataUrlPrefix: imageString.substring(0, 50) + "...",
                         }
                       );
                       contentArray.push({
-                        type: "image_base64",
-                        image_base64: imageString,
+                        type: "image_url",
+                        image_url: { url: imageString },
+                      });
+                    } else {
+                      // Raw base64, wrap it in a data URL
+                      // Default to JPEG if we can't determine the type
+                      const dataUrl = `data:image/jpeg;base64,${imageString}`;
+                      console.log(
+                        "[ConvertMessages] Wrapping base64 in data URL:",
+                        {
+                          type: "image_url",
+                          base64Length: imageString.length,
+                          resultingDataUrlLength: dataUrl.length,
+                          dataUrlPrefix: dataUrl.substring(0, 50) + "...",
+                        }
+                      );
+                      contentArray.push({
+                        type: "image_url",
+                        image_url: { url: dataUrl },
                       });
                     }
                   } else {
@@ -232,13 +218,21 @@ export function convertToGatewayTransformMessages(
                       }
                     );
                     const base64 = Buffer.from(part.image).toString("base64");
+                    // Detect image type from Uint8Array if possible, default to PNG
+                    let mimeType = "image/png";
+                    if (part.mimeType) {
+                      mimeType = part.mimeType;
+                    }
+                    const dataUrl = `data:${mimeType};base64,${base64}`;
                     console.log("[ConvertMessages] Conversion result:", {
                       resultingBase64Length: base64.length,
-                      base64Preview: base64.substring(0, 50) + "...",
+                      mimeType: mimeType,
+                      dataUrlLength: dataUrl.length,
+                      dataUrlPrefix: dataUrl.substring(0, 50) + "...",
                     });
                     contentArray.push({
-                      type: "image_base64",
-                      image_base64: base64,
+                      type: "image_url",
+                      image_url: { url: dataUrl },
                     });
                   }
                   break;
@@ -316,28 +310,27 @@ export function convertToGatewayTransformMessages(
                   });
                 } else if (typeof part.image === "string") {
                   if (part.image.startsWith("data:")) {
-                    const base64Match = part.image.match(
-                      /^data:image\/[^;]+;base64,(.+)$/
-                    );
-                    if (base64Match) {
-                      contentArray.push({
-                        type: "image_base64",
-                        image_base64: base64Match[1],
-                      });
-                    } else {
-                      throw new Error("Invalid data URL format");
-                    }
-                  } else {
+                    // Already a data URL, use it as-is
                     contentArray.push({
-                      type: "image_base64",
-                      image_base64: part.image,
+                      type: "image_url",
+                      image_url: { url: part.image },
+                    });
+                  } else {
+                    // Raw base64, wrap it in a data URL
+                    const dataUrl = `data:image/jpeg;base64,${part.image}`;
+                    contentArray.push({
+                      type: "image_url",
+                      image_url: { url: dataUrl },
                     });
                   }
                 } else {
+                  // Handle Uint8Array
                   const base64 = Buffer.from(part.image).toString("base64");
+                  const mimeType = part.mimeType || "image/png";
+                  const dataUrl = `data:${mimeType};base64,${base64}`;
                   contentArray.push({
-                    type: "image_base64",
-                    image_base64: base64,
+                    type: "image_url",
+                    image_url: { url: dataUrl },
                   });
                 }
               }
