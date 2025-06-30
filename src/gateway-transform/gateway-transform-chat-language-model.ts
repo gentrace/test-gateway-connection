@@ -80,39 +80,52 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
       presencePenalty,
       hasStopSequences: !!stopSequences,
       hasResponseFormat: !!responseFormat,
-      seed
+      seed,
     });
-    
+
     const warnings: LanguageModelV1CallWarning[] = [];
 
     if (mode.type !== "regular") {
-      console.error("[GatewayTransformChatLanguageModel] ERROR: Unsupported mode type:", mode.type);
+      console.error(
+        "[GatewayTransformChatLanguageModel] ERROR: Unsupported mode type:",
+        mode.type
+      );
       const error = new UnsupportedFunctionalityError({
         functionality: `${mode.type} mode`,
       });
-      console.error("[GatewayTransformChatLanguageModel] Throwing UnsupportedFunctionalityError:", {
-        errorType: error.constructor.name,
-        errorMessage: error.message,
-        modeType: mode.type,
-        timestamp: new Date().toISOString()
-      });
+      console.error(
+        "[GatewayTransformChatLanguageModel] Throwing UnsupportedFunctionalityError:",
+        {
+          errorType: error.constructor.name,
+          errorMessage: error.message,
+          modeType: mode.type,
+          timestamp: new Date().toISOString(),
+        }
+      );
       throw error;
     }
 
     // Convert messages to the format expected by the Gateway Transform
-    console.log("[GatewayTransformChatLanguageModel] Converting messages to Gateway Transform format...");
+    console.log(
+      "[GatewayTransformChatLanguageModel] Converting messages to Gateway Transform format..."
+    );
     let messages;
     try {
       messages = convertToGatewayTransformMessages(prompt);
-      console.log("[GatewayTransformChatLanguageModel] Messages converted successfully");
+      console.log(
+        "[GatewayTransformChatLanguageModel] Messages converted successfully"
+      );
     } catch (conversionError) {
-      console.error("[GatewayTransformChatLanguageModel] ERROR during message conversion:", {
-        errorType: conversionError?.constructor?.name,
-        errorMessage: conversionError?.message,
-        errorStack: conversionError?.stack,
-        promptLength: prompt.length,
-        timestamp: new Date().toISOString()
-      });
+      console.error(
+        "[GatewayTransformChatLanguageModel] ERROR during message conversion:",
+        {
+          errorType: conversionError?.constructor?.name,
+          errorMessage: conversionError?.message,
+          errorStack: conversionError?.stack,
+          promptLength: prompt.length,
+          timestamp: new Date().toISOString(),
+        }
+      );
       throw conversionError;
     }
 
@@ -153,27 +166,37 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
     console.log("[GatewayTransformChatLanguageModel] Function: doGenerate");
     console.log("[GatewayTransformChatLanguageModel] Model ID:", this.modelId);
-    console.log("[GatewayTransformChatLanguageModel] Timestamp:", new Date().toISOString());
-    
+    console.log(
+      "[GatewayTransformChatLanguageModel] Timestamp:",
+      new Date().toISOString()
+    );
+
     let body, warnings;
     try {
       const result = this.getArgs(options);
       body = result.args;
       warnings = result.warnings;
-      console.log("[GatewayTransformChatLanguageModel] Arguments prepared successfully");
+      console.log(
+        "[GatewayTransformChatLanguageModel] Arguments prepared successfully"
+      );
     } catch (argsError) {
-      console.error("[GatewayTransformChatLanguageModel] ERROR preparing arguments:", {
-        errorType: argsError?.constructor?.name,
-        errorMessage: argsError?.message,
-        errorStack: argsError?.stack,
-        timestamp: new Date().toISOString()
-      });
+      console.error(
+        "[GatewayTransformChatLanguageModel] ERROR preparing arguments:",
+        {
+          errorType: argsError?.constructor?.name,
+          errorMessage: argsError?.message,
+          errorStack: argsError?.stack,
+          timestamp: new Date().toISOString(),
+        }
+      );
       throw argsError;
     }
 
     // Add streaming flag at top level (false for non-streaming)
     body.streaming = false;
-    console.log("[GatewayTransformChatLanguageModel] Added streaming flag (false) to top level of body");
+    console.log(
+      "[GatewayTransformChatLanguageModel] Added streaming flag (false) to top level of body"
+    );
 
     // Update headers with proper signature
     console.log("[GatewayTransformChatLanguageModel] Preparing headers...");
@@ -185,14 +208,19 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
         this.config.consumerId,
         this.config.privateKey
       );
-      console.log("[GatewayTransformChatLanguageModel] Headers signed successfully");
+      console.log(
+        "[GatewayTransformChatLanguageModel] Headers signed successfully"
+      );
     } catch (signError) {
-      console.error("[GatewayTransformChatLanguageModel] ERROR signing headers:", {
-        errorType: signError?.constructor?.name,
-        errorMessage: signError?.message,
-        errorStack: signError?.stack,
-        timestamp: new Date().toISOString()
-      });
+      console.error(
+        "[GatewayTransformChatLanguageModel] ERROR signing headers:",
+        {
+          errorType: signError?.constructor?.name,
+          errorMessage: signError?.message,
+          errorStack: signError?.stack,
+          timestamp: new Date().toISOString(),
+        }
+      );
       throw signError;
     }
 
@@ -202,9 +230,15 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
       : this.config.fetch;
 
     console.log("[GatewayTransformChatLanguageModel] Making API request...");
-    console.log("[GatewayTransformChatLanguageModel] Request URL:", this.config.url());
-    console.log("[GatewayTransformChatLanguageModel] Request body:", JSON.stringify(body, null, 2));
-    
+    console.log(
+      "[GatewayTransformChatLanguageModel] Request URL:",
+      this.config.url()
+    );
+    console.log(
+      "[GatewayTransformChatLanguageModel] Request body:",
+      JSON.stringify(body, null, 2)
+    );
+
     let responseHeaders, response;
     try {
       const apiResponse = await postJsonToApi({
@@ -221,28 +255,37 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
       responseHeaders = apiResponse.responseHeaders;
       response = apiResponse.value;
       console.log("[GatewayTransformChatLanguageModel] API request successful");
-      console.log("[GatewayTransformChatLanguageModel] Response:", JSON.stringify(response, null, 2));
+      console.log(
+        "[GatewayTransformChatLanguageModel] Response:",
+        JSON.stringify(response, null, 2)
+      );
     } catch (apiError) {
-      console.error("[GatewayTransformChatLanguageModel] ERROR: API request failed:", {
-        errorType: apiError?.constructor?.name,
-        errorMessage: apiError?.message,
-        errorStack: apiError?.stack,
-        errorData: apiError?.data,
-        errorResponseBody: apiError?.responseBody,
-        errorResponse: apiError?.response,
-        url: this.config.url(),
-        modelId: this.modelId,
-        timestamp: new Date().toISOString()
-      });
+      console.error(
+        "[GatewayTransformChatLanguageModel] ERROR: API request failed:",
+        {
+          errorType: apiError?.constructor?.name,
+          errorMessage: apiError?.message,
+          errorStack: apiError?.stack,
+          errorData: apiError?.data,
+          errorResponseBody: apiError?.responseBody,
+          errorResponse: apiError?.response,
+          url: this.config.url(),
+          modelId: this.modelId,
+          timestamp: new Date().toISOString(),
+        }
+      );
       throw apiError;
     }
 
     const choice = response.choices[0];
     if (!choice) {
-      console.error("[GatewayTransformChatLanguageModel] ERROR: No choice in response", {
-        response: JSON.stringify(response),
-        timestamp: new Date().toISOString()
-      });
+      console.error(
+        "[GatewayTransformChatLanguageModel] ERROR: No choice in response",
+        {
+          response: JSON.stringify(response),
+          timestamp: new Date().toISOString(),
+        }
+      );
       throw new Error("No choice in response");
     }
 
@@ -270,21 +313,29 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1["doStream"]>>> {
     console.log("[GatewayTransformChatLanguageModel] Function: doStream");
     console.log("[GatewayTransformChatLanguageModel] Model ID:", this.modelId);
-    console.log("[GatewayTransformChatLanguageModel] Timestamp:", new Date().toISOString());
-    
+    console.log(
+      "[GatewayTransformChatLanguageModel] Timestamp:",
+      new Date().toISOString()
+    );
+
     let body, warnings;
     try {
       const result = this.getArgs(options);
       body = result.args;
       warnings = result.warnings;
-      console.log("[GatewayTransformChatLanguageModel] Stream arguments prepared successfully");
+      console.log(
+        "[GatewayTransformChatLanguageModel] Stream arguments prepared successfully"
+      );
     } catch (argsError) {
-      console.error("[GatewayTransformChatLanguageModel] ERROR preparing stream arguments:", {
-        errorType: argsError?.constructor?.name,
-        errorMessage: argsError?.message,
-        errorStack: argsError?.stack,
-        timestamp: new Date().toISOString()
-      });
+      console.error(
+        "[GatewayTransformChatLanguageModel] ERROR preparing stream arguments:",
+        {
+          errorType: argsError?.constructor?.name,
+          errorMessage: argsError?.message,
+          errorStack: argsError?.stack,
+          timestamp: new Date().toISOString(),
+        }
+      );
       throw argsError;
     }
 
@@ -306,14 +357,19 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
         this.config.consumerId,
         this.config.privateKey
       );
-      console.log("[GatewayTransformChatLanguageModel] Stream headers signed successfully");
+      console.log(
+        "[GatewayTransformChatLanguageModel] Stream headers signed successfully"
+      );
     } catch (signError) {
-      console.error("[GatewayTransformChatLanguageModel] ERROR signing stream headers:", {
-        errorType: signError?.constructor?.name,
-        errorMessage: signError?.message,
-        errorStack: signError?.stack,
-        timestamp: new Date().toISOString()
-      });
+      console.error(
+        "[GatewayTransformChatLanguageModel] ERROR signing stream headers:",
+        {
+          errorType: signError?.constructor?.name,
+          errorMessage: signError?.message,
+          errorStack: signError?.stack,
+          timestamp: new Date().toISOString(),
+        }
+      );
       throw signError;
     }
 
@@ -515,40 +571,41 @@ const gatewayTransformChatResponseSchema = z.object({
     .optional(),
 });
 
-const gatewayTransformChatStreamChunkSchema = z.object({
-  id: z.string(),
-  object: z.string(),
-  created: z.number(),
-  model: z.string(),
-  choices: z.array(
-    z.object({
-      index: z.number(),
-      delta: z.object({
-        role: z.string().optional(),
-        content: z.string().nullable().optional(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string().optional(),
-              type: z.literal("function").optional(),
-              function: z
-                .object({
-                  name: z.string().optional(),
-                  arguments: z.string().optional(),
-                })
-                .optional(),
-            })
-          )
-          .optional(),
-      }),
-      finish_reason: z.string().nullable().optional(),
-    })
-  ),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      completion_tokens: z.number(),
-      total_tokens: z.number(),
-    })
-    .optional(),
-});
+const gatewayTransformChatStreamChunkSchema = z.any();
+// z.object({
+//   id: z.string(),
+//   object: z.string(),
+//   created: z.number(),
+//   model: z.string(),
+//   choices: z.array(
+//     z.object({
+//       index: z.number(),
+//       delta: z.object({
+//         role: z.string().optional(),
+//         content: z.string().nullable().optional(),
+//         tool_calls: z
+//           .array(
+//             z.object({
+//               id: z.string().optional(),
+//               type: z.literal("function").optional(),
+//               function: z
+//                 .object({
+//                   name: z.string().optional(),
+//                   arguments: z.string().optional(),
+//                 })
+//                 .optional(),
+//             })
+//           )
+//           .optional(),
+//       }),
+//       finish_reason: z.string().nullable().optional(),
+//     })
+//   ),
+//   usage: z
+//     .object({
+//       prompt_tokens: z.number(),
+//       completion_tokens: z.number(),
+//       total_tokens: z.number(),
+//     })
+//     .optional(),
+// });

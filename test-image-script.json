@@ -1,5 +1,5 @@
 {
-    "model": "gpt-4o",
+    "model": "gpt-3o",
     "model-version": "2024-05-13",
     "api-version": "2024-02-01",
     "task": "chat/completions",
