@@ -478,6 +478,17 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
         };
       }
 
+      // Handle empty deltas (e.g., when only role is present)
+      if (choice.delta.role && !choice.delta.content) {
+        console.log(
+          "[GatewayTransformChatLanguageModel] Role-only delta, skipping"
+        );
+        return {
+          type: "text-delta",
+          textDelta: "",
+        };
+      }
+
       console.log(
         "[GatewayTransformChatLanguageModel] Unknown stream part type:",
         delta
@@ -571,41 +582,40 @@ const gatewayTransformChatResponseSchema = z.object({
     .optional(),
 });
 
-const gatewayTransformChatStreamChunkSchema = z.any();
-// z.object({
-//   id: z.string(),
-//   object: z.string(),
-//   created: z.number(),
-//   model: z.string(),
-//   choices: z.array(
-//     z.object({
-//       index: z.number(),
-//       delta: z.object({
-//         role: z.string().optional(),
-//         content: z.string().nullable().optional(),
-//         tool_calls: z
-//           .array(
-//             z.object({
-//               id: z.string().optional(),
-//               type: z.literal("function").optional(),
-//               function: z
-//                 .object({
-//                   name: z.string().optional(),
-//                   arguments: z.string().optional(),
-//                 })
-//                 .optional(),
-//             })
-//           )
-//           .optional(),
-//       }),
-//       finish_reason: z.string().nullable().optional(),
-//     })
-//   ),
-//   usage: z
-//     .object({
-//       prompt_tokens: z.number(),
-//       completion_tokens: z.number(),
-//       total_tokens: z.number(),
-//     })
-//     .optional(),
-// });
+const gatewayTransformChatStreamChunkSchema = z.object({
+  id: z.string(),
+  object: z.string(),
+  created: z.number(),
+  model: z.string(),
+  choices: z.array(
+    z.object({
+      index: z.number(),
+      delta: z.object({
+        role: z.string().optional(),
+        content: z.string().nullable().optional(),
+        tool_calls: z
+          .array(
+            z.object({
+              id: z.string().optional(),
+              type: z.literal("function").optional(),
+              function: z
+                .object({
+                  name: z.string().optional(),
+                  arguments: z.string().optional(),
+                })
+                .optional(),
+            })
+          )
+          .optional(),
+      }),
+      finish_reason: z.string().nullable().optional(),
+    })
+  ),
+  usage: z
+    .object({
+      prompt_tokens: z.number(),
+      completion_tokens: z.number(),
+      total_tokens: z.number(),
+    })
+    .optional(),
+});
