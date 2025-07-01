@@ -59,12 +59,6 @@ export interface GatewayTransformProviderSettings {
   headers?: Record<string, string>;
 
   /**
-   * Whether to ignore SSL certificate errors. Default is false.
-   * WARNING: Only use this for development/testing. Never in production.
-   */
-  ignoreSSL?: boolean;
-
-  /**
    * Custom fetch implementation. You can use it as a middleware to intercept requests,
    * or to provide a custom fetch implementation for e.g. testing.
    */
@@ -190,10 +184,6 @@ export function createGatewayTransform(
         "[GatewayTransformProvider] Settings:",
         JSON.stringify(settings, null, 2)
       );
-      console.log(
-        "[GatewayTransformProvider] Ignore SSL:",
-        options.ignoreSSL ?? false
-      );
 
       try {
         const model = new GatewayTransformChatLanguageModel(modelId, settings, {
@@ -201,7 +191,6 @@ export function createGatewayTransform(
           url: () => baseURL,
           headers: getHeaders,
           fetch: options.fetch,
-          ignoreSSL: options.ignoreSSL ?? false,
           consumerId,
           privateKey,
         });

@@ -14,7 +14,6 @@ import {
 } from "@ai-sdk/provider-utils";
 import { z } from "zod";
 import { convertToGatewayTransformMessages } from "./convert-to-gateway-transform-messages";
-import { createCustomFetch } from "./create-custom-fetch";
 import { GatewayTransformChatSettings } from "./gateway-transform-chat-settings";
 import { gatewayTransformFailedResponseHandler } from "./gateway-transform-error";
 import { mapGatewayTransformFinishReason } from "./map-gateway-transform-finish-reason";
@@ -25,7 +24,6 @@ type GatewayTransformConfig = {
   headers: () => Record<string, string | undefined>;
   url: () => string;
   fetch?: FetchFunction;
-  ignoreSSL: boolean;
   consumerId: string;
   privateKey: string;
 };
@@ -224,10 +222,8 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
       throw signError;
     }
 
-    // Create custom fetch if SSL should be ignored
-    const customFetch = this.config.ignoreSSL
-      ? createCustomFetch()
-      : this.config.fetch;
+    // Use the provided fetch or default to global fetch
+    const customFetch = this.config.fetch;
 
     console.log("[GatewayTransformChatLanguageModel] Making API request...");
     console.log(
@@ -373,10 +369,8 @@ export class GatewayTransformChatLanguageModel implements LanguageModelV1 {
       throw signError;
     }
 
-    // Create custom fetch if SSL should be ignored
-    const customFetch = this.config.ignoreSSL
-      ? createCustomFetch()
-      : this.config.fetch;
+    // Use the provided fetch or default to global fetch
+    const customFetch = this.config.fetch;
     console.log(
       "[GatewayTransformChatLanguageModel] Using custom fetch for streaming:",
       this.config.ignoreSSL

@@ -21,8 +21,9 @@ GATEWAY_TRANSFORM_BASE_URL=https://your-gateway-url.com
 # Required: Consumer ID for authentication
 LLM_AUTH_CONSUMER_ID=your-consumer-id
 
-# Optional: For development environments, ignore SSL certificate errors
-NODE_ENV=development
+# Optional: For development environments with self-signed certificates
+# WARNING: Only use this in development, never in production!
+NODE_TLS_REJECT_UNAUTHORIZED=0
 ```
 
 For full LLM authentication with request signing, add these additional variables:
@@ -102,6 +103,22 @@ Starting basic non-streaming request...
 Total Time: 1234ms
 ```
 
+## SSL Certificate Handling
+
+When connecting to development servers with self-signed certificates, you have two options:
+
+1. **Set environment variable** (recommended for development):
+   ```bash
+   NODE_TLS_REJECT_UNAUTHORIZED=0 npm test
+   ```
+
+2. **Add to .env file** (for persistent development setup):
+   ```bash
+   NODE_TLS_REJECT_UNAUTHORIZED=0
+   ```
+
+⚠️ **WARNING**: Never use `NODE_TLS_REJECT_UNAUTHORIZED=0` in production! This disables SSL certificate verification and poses significant security risks.
+
 ## Troubleshooting
 
 If tests fail, check:
@@ -109,7 +126,7 @@ If tests fail, check:
 1. **Environment Variables** - Ensure `GATEWAY_TRANSFORM_BASE_URL` and `LLM_AUTH_CONSUMER_ID` are set
 2. **Network Access** - Verify you can reach the gateway URL
 3. **Authentication** - Check if your consumer ID is valid
-4. **SSL Certificates** - Set `NODE_ENV=development` to bypass SSL errors during testing
+4. **SSL Certificates** - For self-signed certificates, see SSL Certificate Handling section above
 
 ## Running with Echo Server
 

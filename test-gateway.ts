@@ -166,14 +166,13 @@ async function testGatewayTransformProvider() {
   console.log(`\n--- Gateway Configuration ---`);
   console.log(`Gateway URL: ${baseURL}`);
   console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
-  console.log(`Ignore SSL: ${process.env.NODE_ENV === "development"}`);
+  console.log(`NODE_TLS_REJECT_UNAUTHORIZED: ${process.env.NODE_TLS_REJECT_UNAUTHORIZED}`);
 
   console.log(`\n--- Creating Gateway Transform Provider ---`);
   // Create the provider
   const gatewayTransform = createGatewayTransform({
     baseURL,
     // The provider will use LLM_AUTH_CONSUMER_ID and LLM_AUTH_PK_VALUE from environment
-    ignoreSSL: true,
   });
   console.log("Provider created successfully!");
 
