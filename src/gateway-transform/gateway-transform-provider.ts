@@ -81,7 +81,10 @@ export function createGatewayTransform(
   console.log(
     "[GatewayTransformProvider] Creating gateway transform provider..."
   );
-  console.log("[GatewayTransformProvider] Timestamp:", new Date().toISOString());
+  console.log(
+    "[GatewayTransformProvider] Timestamp:",
+    new Date().toISOString()
+  );
   console.log(
     "[GatewayTransformProvider] Options:",
     JSON.stringify(options, null, 2)
@@ -91,10 +94,14 @@ export function createGatewayTransform(
     const baseURL =
       withoutTrailingSlash(options.baseURL) ?? "https://your-gateway-url.com";
     console.log("[GatewayTransformProvider] Base URL:", baseURL);
-    
+
     if (!options.baseURL) {
-      console.warn("[GatewayTransformProvider] WARNING: No baseURL provided, using default");
-      console.warn("[GatewayTransformProvider] Default URL: https://your-gateway-url.com");
+      console.warn(
+        "[GatewayTransformProvider] WARNING: No baseURL provided, using default"
+      );
+      console.warn(
+        "[GatewayTransformProvider] Default URL: https://your-gateway-url.com"
+      );
     }
 
     const serviceName = options.serviceName ?? "your-service-name";
@@ -119,7 +126,7 @@ export function createGatewayTransform(
         errorType: consumerError?.constructor?.name,
         errorMessage: consumerError?.message,
         errorStack: consumerError?.stack,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
       throw consumerError;
     }
@@ -131,16 +138,22 @@ export function createGatewayTransform(
         environmentVariableName: "LLM_AUTH_PK_VALUE",
         description: "LLM Auth Private Key",
       });
-      console.log("[GatewayTransformProvider] Private Key loaded:", !!privateKey);
+      console.log(
+        "[GatewayTransformProvider] Private Key loaded:",
+        !!privateKey
+      );
       if (privateKey) {
-        console.log("[GatewayTransformProvider] Private Key length:", privateKey.length);
+        console.log(
+          "[GatewayTransformProvider] Private Key length:",
+          privateKey.length
+        );
       }
     } catch (keyError) {
       console.error("[GatewayTransformProvider] ERROR loading private key:", {
         errorType: keyError?.constructor?.name,
         errorMessage: keyError?.message,
         errorStack: keyError?.stack,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
       // Private key is optional, so we continue
       console.warn("[GatewayTransformProvider] Continuing without private key");
@@ -160,7 +173,7 @@ export function createGatewayTransform(
           errorType: headerError?.constructor?.name,
           errorMessage: headerError?.message,
           errorStack: headerError?.stack,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
         throw headerError;
       }
@@ -192,8 +205,10 @@ export function createGatewayTransform(
           consumerId,
           privateKey,
         });
-        
-        console.log("[GatewayTransformProvider] Chat model created successfully");
+
+        console.log(
+          "[GatewayTransformProvider] Chat model created successfully"
+        );
         return model;
       } catch (modelError) {
         console.error("[GatewayTransformProvider] ERROR creating chat model:", {
@@ -201,7 +216,7 @@ export function createGatewayTransform(
           errorMessage: modelError?.message,
           errorStack: modelError?.stack,
           modelId,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
         throw modelError;
       }
@@ -222,13 +237,16 @@ export function createGatewayTransform(
     console.log("[GatewayTransformProvider] Provider created successfully");
     return provider as GatewayTransformProvider;
   } catch (error) {
-    console.error("[GatewayTransformProvider] FATAL ERROR in createGatewayTransform:", {
-      errorType: error?.constructor?.name,
-      errorMessage: error?.message,
-      errorStack: error?.stack,
-      functionName: "createGatewayTransform",
-      timestamp: new Date().toISOString()
-    });
+    console.error(
+      "[GatewayTransformProvider] FATAL ERROR in createGatewayTransform:",
+      {
+        errorType: error?.constructor?.name,
+        errorMessage: error?.message,
+        errorStack: error?.stack,
+        functionName: "createGatewayTransform",
+        timestamp: new Date().toISOString(),
+      }
+    );
     throw error;
   }
 }

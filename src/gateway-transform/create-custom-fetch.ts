@@ -1,6 +1,4 @@
 import { FetchFunction } from "@ai-sdk/provider-utils";
-import * as https from "https";
-import nodeFetch from "node-fetch";
 
 /**
  * Creates a custom fetch function that ignores SSL certificate errors.
@@ -19,21 +17,10 @@ export function createCustomFetch(): FetchFunction {
   );
   console.warn("[CreateCustomFetch] NODE_ENV:", process.env.NODE_ENV);
 
-  let agent;
-  try {
-    agent = new https.Agent({
-      rejectUnauthorized: false,
-    });
-    console.log("[CreateCustomFetch] HTTPS agent created successfully");
-  } catch (agentError) {
-    console.error("[CreateCustomFetch] ERROR creating HTTPS agent:", {
-      errorType: agentError?.constructor?.name,
-      errorMessage: agentError?.message,
-      errorStack: agentError?.stack,
-      timestamp: new Date().toISOString(),
-    });
-    throw agentError;
-  }
+  // Node.js 18+ has undici-based fetch that doesn't support custom agents
+  // We need to use a different approach for SSL bypass
+  const nodeVersion = process.version;
+  console.log("[CreateCustomFetch] Node.js version:", nodeVersion);
 
   return async (url, options) => {
     console.log("[CreateCustomFetch] Fetch called");
@@ -57,17 +44,34 @@ export function createCustomFetch(): FetchFunction {
 
     const isHttps = url.toString().startsWith("https");
     console.log("[CreateCustomFetch] Protocol:", isHttps ? "HTTPS" : "HTTP");
-    console.log("[CreateCustomFetch] Using custom agent:", isHttps);
 
     try {
       console.log("[CreateCustomFetch] Initiating fetch request...");
       const startTime = Date.now();
 
-      // @ts-ignore - node-fetch types don't perfectly align with standard fetch
-      const response = (await nodeFetch(url, {
-        ...options,
-        agent: isHttps ? agent : undefined,
-      })) as unknown as Response;
+      // For Node.js 18+, we need to handle SSL differently
+      // The native fetch doesn't support custom agents directly
+      let response: Response;
+      
+      if (isHttps) {
+        // Warning: This disables SSL verification globally for this request
+        // This is a security risk and should only be used in development
+        const originalRejectUnauthorized = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+        
+        try {
+          response = await fetch(url, options);
+        } finally {
+          // Restore original setting
+          if (originalRejectUnauthorized === undefined) {
+            delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+          } else {
+            process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalRejectUnauthorized;
+          }
+        }
+      } else {
+        response = await fetch(url, options);
+      }
 
       const endTime = Date.now();
       console.log("[CreateCustomFetch] Fetch completed successfully");
@@ -100,16 +104,16 @@ export function createCustomFetch(): FetchFunction {
             console.log("[CreateCustomFetch] Response body is not valid JSON");
           }
         } catch (bodyError) {
-          console.error("[CreateCustomFetch] Failed to read error response body:", bodyError?.message);
+          console.error("[CreateCustomFetch] Failed to read error response body:", (bodyError as Error)?.message);
         }
       }
 
       return response;
     } catch (fetchError) {
       console.error("[CreateCustomFetch] ERROR during fetch:", {
-        errorType: fetchError?.constructor?.name,
-        errorMessage: fetchError?.message,
-        errorStack: fetchError?.stack,
+        errorType: (fetchError as Error)?.constructor?.name,
+        errorMessage: (fetchError as Error)?.message,
+        errorStack: (fetchError as Error)?.stack,
         url: url.toString(),
         method: options?.method || "GET",
         timestamp: new Date().toISOString(),

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import 'dotenv/config';
+import "dotenv/config";
 /*
 Test script for the Gateway Transform AI SDK provider.
 
@@ -77,23 +77,23 @@ async function runTest(
   console.log("\n\n========================================");
   console.log(`--- ${testName} ---`);
   console.log("========================================\n");
-  
+
   console.log("Test Configuration:");
   console.log(JSON.stringify(testConfig, null, 2));
-  
+
   const startTime = Date.now();
-  
+
   try {
     await testFunc();
     const endTime = Date.now();
     const duration = endTime - startTime;
     console.log(`\n✅ ${testName} completed successfully!`);
     console.log(`Total Time: ${duration}ms`);
-    
+
     testResults.push({
       name: testName,
       status: "passed",
-      duration
+      duration,
     });
   } catch (error) {
     const endTime = Date.now();
@@ -103,18 +103,18 @@ async function runTest(
     console.error("Error type:", error?.constructor?.name);
     console.error("Error message:", error?.message);
     console.error("Error stack:", error?.stack);
-    
+
     // Check if it's an echo server response
     if (error instanceof Error && error.message.includes("task")) {
       console.log("\n🔍 Echo Server Response Detected!");
       console.log("Request was properly formatted and sent.");
     }
-    
+
     testResults.push({
       name: testName,
       status: "failed",
       duration,
-      error: error?.message || "Unknown error"
+      error: error?.message || "Unknown error",
     });
   }
 }
@@ -190,8 +190,10 @@ async function testGatewayTransformProvider() {
       ],
     },
     async () => {
-      console.log("\nStarting basic non-streaming request with system message...");
-      
+      console.log(
+        "\nStarting basic non-streaming request with system message..."
+      );
+
       const result = await generateText({
         model: gatewayTransform("gpt-4o"),
         messages: [
@@ -226,7 +228,7 @@ async function testGatewayTransformProvider() {
     },
     async () => {
       console.log("\nStarting multi-turn conversation test...");
-      
+
       const result = await generateText({
         model: gatewayTransform("gpt-4o"),
         messages: [
@@ -254,18 +256,14 @@ async function testGatewayTransformProvider() {
       streaming: false,
       temperature: 0,
       maxTokens: 50,
-      messages: [
-        { role: "user", content: "What is the capital of France?" },
-      ],
+      messages: [{ role: "user", content: "What is the capital of France?" }],
     },
     async () => {
       console.log("\nStarting deterministic request (temperature=0)...");
-      
+
       const result = await generateText({
         model: gatewayTransform("gpt-4o"),
-        messages: [
-          { role: "user", content: "What is the capital of France?" },
-        ],
+        messages: [{ role: "user", content: "What is the capital of France?" }],
         temperature: 0,
         maxTokens: 50,
       });
@@ -292,7 +290,7 @@ async function testGatewayTransformProvider() {
     },
     async () => {
       console.log("\nStarting creative request (temperature=1.5)...");
-      
+
       const result = await generateText({
         model: gatewayTransform("gpt-4o"),
         messages: [
@@ -323,7 +321,7 @@ async function testGatewayTransformProvider() {
     },
     async () => {
       console.log("\nStarting streaming request with system message...");
-      
+
       const { textStream } = await streamText({
         model: gatewayTransform("gpt-4o"),
         messages: [
@@ -335,7 +333,7 @@ async function testGatewayTransformProvider() {
 
       console.log("\nStream started, receiving chunks:");
       console.log("---");
-      
+
       let chunkCount = 0;
       let fullText = "";
       for await (const chunk of textStream) {
@@ -343,7 +341,7 @@ async function testGatewayTransformProvider() {
         console.log(`[Chunk ${chunkCount}]: "${chunk}"`);
         fullText += chunk;
       }
-      
+
       console.log("---");
       console.log(`Total chunks received: ${chunkCount}`);
       console.log(`Full streamed text: "${fullText}"`);
@@ -360,19 +358,27 @@ async function testGatewayTransformProvider() {
       messages: [
         { role: "system", content: "You are a helpful coding assistant." },
         { role: "user", content: "How do I write a for loop in Python?" },
-        { role: "assistant", content: "In Python, you can write a for loop using the following syntax:\n\n```python\nfor item in iterable:\n    # code to execute\n```" },
+        {
+          role: "assistant",
+          content:
+            "In Python, you can write a for loop using the following syntax:\n\n```python\nfor item in iterable:\n    # code to execute\n```",
+        },
         { role: "user", content: "Now show me a while loop." },
       ],
     },
     async () => {
       console.log("\nStarting streaming multi-turn conversation...");
-      
+
       const { textStream } = await streamText({
         model: gatewayTransform("gpt-4o"),
         messages: [
           { role: "system", content: "You are a helpful coding assistant." },
           { role: "user", content: "How do I write a for loop in Python?" },
-          { role: "assistant", content: "In Python, you can write a for loop using the following syntax:\n\n```python\nfor item in iterable:\n    # code to execute\n```" },
+          {
+            role: "assistant",
+            content:
+              "In Python, you can write a for loop using the following syntax:\n\n```python\nfor item in iterable:\n    # code to execute\n```",
+          },
           { role: "user", content: "Now show me a while loop." },
         ],
         temperature: 0.8,
@@ -380,7 +386,7 @@ async function testGatewayTransformProvider() {
 
       console.log("\nStreaming conversation response:");
       console.log("---");
-      
+
       let chunkCount = 0;
       let fullText = "";
       for await (const chunk of textStream) {
@@ -388,7 +394,7 @@ async function testGatewayTransformProvider() {
         console.log(`[Chunk ${chunkCount}]: "${chunk}"`);
         fullText += chunk;
       }
-      
+
       console.log("---");
       console.log(`Total chunks: ${chunkCount}`);
       console.log(`Full response: "${fullText}"`);
@@ -409,11 +415,14 @@ async function testGatewayTransformProvider() {
     },
     async () => {
       console.log("\nStarting request without system message...");
-      
+
       const result = await generateText({
         model: gatewayTransform("gpt-4o"),
         messages: [
-          { role: "user", content: "Explain quantum computing in one sentence." },
+          {
+            role: "user",
+            content: "Explain quantum computing in one sentence.",
+          },
         ],
         temperature: 0.7,
         maxTokens: 80,
@@ -434,17 +443,25 @@ async function testGatewayTransformProvider() {
       temperature: 0.6,
       maxTokens: 200,
       messages: [
-        { role: "system", content: "You are an expert chef. You specialize in Italian cuisine. Always be enthusiastic about food." },
+        {
+          role: "system",
+          content:
+            "You are an expert chef. You specialize in Italian cuisine. Always be enthusiastic about food.",
+        },
         { role: "user", content: "What's your favorite pasta dish?" },
       ],
     },
     async () => {
       console.log("\nStarting request with complex system context...");
-      
+
       const result = await generateText({
         model: gatewayTransform("gpt-4o"),
         messages: [
-          { role: "system", content: "You are an expert chef. You specialize in Italian cuisine. Always be enthusiastic about food." },
+          {
+            role: "system",
+            content:
+              "You are an expert chef. You specialize in Italian cuisine. Always be enthusiastic about food.",
+          },
           { role: "user", content: "What's your favorite pasta dish?" },
         ],
         temperature: 0.6,
@@ -453,7 +470,9 @@ async function testGatewayTransformProvider() {
 
       console.log("\nResponse with detailed system context:");
       console.log("Generated Text:", result.text);
-      console.log("System prompt included: role definition + expertise + personality");
+      console.log(
+        "System prompt included: role definition + expertise + personality"
+      );
     }
   );
 
@@ -464,30 +483,26 @@ async function testGatewayTransformProvider() {
       model: "gpt-4o",
       streaming: true,
       temperature: "default",
-      messages: [
-        { role: "user", content: "List three primary colors." },
-      ],
+      messages: [{ role: "user", content: "List three primary colors." }],
     },
     async () => {
       console.log("\nStarting streaming without explicit temperature...");
-      
+
       const { textStream } = await streamText({
         model: gatewayTransform("gpt-4o"),
-        messages: [
-          { role: "user", content: "List three primary colors." },
-        ],
+        messages: [{ role: "user", content: "List three primary colors." }],
         // No temperature specified - using model default
       });
 
       console.log("\nStreaming with default temperature:");
       console.log("---");
-      
+
       let chunkCount = 0;
       for await (const chunk of textStream) {
         chunkCount++;
         console.log(`[Chunk ${chunkCount}]: "${chunk}"`);
       }
-      
+
       console.log("---");
       console.log(`Total chunks: ${chunkCount}`);
       console.log("Temperature: Using model default");
@@ -505,24 +520,43 @@ async function testGatewayTransformProvider() {
       messages: [
         { role: "system", content: "You are a travel guide." },
         { role: "user", content: "I want to visit Europe." },
-        { role: "assistant", content: "Europe is a wonderful destination! What specific countries or cities are you interested in?" },
+        {
+          role: "assistant",
+          content:
+            "Europe is a wonderful destination! What specific countries or cities are you interested in?",
+        },
         { role: "user", content: "I'm thinking about Paris and Rome." },
-        { role: "assistant", content: "Excellent choices! Paris and Rome are two of Europe's most iconic cities. Paris offers the Eiffel Tower, Louvre Museum, and amazing cuisine. Rome has the Colosseum, Vatican City, and incredible history." },
+        {
+          role: "assistant",
+          content:
+            "Excellent choices! Paris and Rome are two of Europe's most iconic cities. Paris offers the Eiffel Tower, Louvre Museum, and amazing cuisine. Rome has the Colosseum, Vatican City, and incredible history.",
+        },
         { role: "user", content: "How many days should I spend in each city?" },
       ],
     },
     async () => {
       console.log("\nStarting extended conversation test...");
-      
+
       const result = await generateText({
         model: gatewayTransform("gpt-4o"),
         messages: [
           { role: "system", content: "You are a travel guide." },
           { role: "user", content: "I want to visit Europe." },
-          { role: "assistant", content: "Europe is a wonderful destination! What specific countries or cities are you interested in?" },
+          {
+            role: "assistant",
+            content:
+              "Europe is a wonderful destination! What specific countries or cities are you interested in?",
+          },
           { role: "user", content: "I'm thinking about Paris and Rome." },
-          { role: "assistant", content: "Excellent choices! Paris and Rome are two of Europe's most iconic cities. Paris offers the Eiffel Tower, Louvre Museum, and amazing cuisine. Rome has the Colosseum, Vatican City, and incredible history." },
-          { role: "user", content: "How many days should I spend in each city?" },
+          {
+            role: "assistant",
+            content:
+              "Excellent choices! Paris and Rome are two of Europe's most iconic cities. Paris offers the Eiffel Tower, Louvre Museum, and amazing cuisine. Rome has the Colosseum, Vatican City, and incredible history.",
+          },
+          {
+            role: "user",
+            content: "How many days should I spend in each city?",
+          },
         ],
         temperature: 0.7,
         maxTokens: 150,
@@ -543,33 +577,35 @@ async function testGatewayTransformProvider() {
       temperature: 0.7,
       maxTokens: 200,
       messages: [
-        { 
-          role: "user", 
+        {
+          role: "user",
           content: [
             { type: "text", text: "What's in this image?" },
-            { 
-              type: "image", 
-              image: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg" 
-            }
-          ]
+            {
+              type: "image",
+              image:
+                "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+            },
+          ],
         },
       ],
     },
     async () => {
       console.log("\nStarting vision test with external image URL...");
-      
+
       const result = await generateText({
         model: gatewayTransform("gpt-4o"),
         messages: [
-          { 
-            role: "user", 
+          {
+            role: "user",
             content: [
               { type: "text", text: "What's in this image?" },
-              { 
-                type: "image", 
-                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg" 
-              }
-            ]
+              {
+                type: "image",
+                image:
+                  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+              },
+            ],
           },
         ],
         temperature: 0.7,
@@ -585,8 +621,9 @@ async function testGatewayTransformProvider() {
   // Test 12: Vision with Base64 Encoded Image
   // Creating a small 10x10 gradient image that transitions from blue to green
   // This is a more substantive test image that shows color gradients
-  const base64GradientImage = "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAABmJLR0QA/wD/AP+gvaeTAAAAxklEQVQYlWNgYGBgEBQUZGBgYGD4//8/AxYgKCjIwMDAwPD//38GbGpwKcamCKcibGqwKcKpCJsabIqwKcamBpsirGowFeFSg00xNjXYFGNTg00xNjXYFGNTg00xNjXYFGNTg00xNjXYFGNTg00xNjXYFGNTg00xNjXYFKNThE0NNsXY1GBTjE0NNsXY1GBTjE0NNsXY1GBTjE0NNsVUA7h+p5lizABXYmLg+H+Pof8/A8P/fwwMjP//MzAwMjJiSHNmZmZEVgMAPX0hJnB7mPgAAAAASUVORK5CYII=";
-  
+  const base64GradientImage =
+    "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAABmJLR0QA/wD/AP+gvaeTAAAAxklEQVQYlWNgYGBgEBQUZGBgYGD4//8/AxYgKCjIwMDAwPD//38GbGpwKcamCKcibGqwKcKpCJsabIqwKcamBpsirGowFeFSg00xNjXYFGNTg00xNjXYFGNTg00xNjXYFGNTg00xNjXYFGNTg00xNjXYFGNTg00xNjXYFKNThE0NNsXY1GBTjE0NNsXY1GBTjE0NNsXY1GBTjE0NNsVUA7h+p5lizABXYmLg+H+Pof8/A8P/fwwMjP//MzAwMjJiSHNmZmZEVgMAPX0hJnB7mPgAAAAASUVORK5CYII=";
+
   await runTest(
     "Test 12: Vision with Base64 Encoded Image",
     {
@@ -595,34 +632,40 @@ async function testGatewayTransformProvider() {
       temperature: 0.7,
       maxTokens: 150,
       messages: [
-        { 
-          role: "user", 
+        {
+          role: "user",
           content: [
-            { type: "text", text: "Describe what you see in this image. Can you identify any colors or patterns?" },
-            { 
-              type: "image", 
-              image: `data:image/png;base64,${base64GradientImage}`
-            }
-          ]
+            {
+              type: "text",
+              text: "Describe what you see in this image. Can you identify any colors or patterns?",
+            },
+            {
+              type: "image",
+              image: `data:image/png;base64,${base64GradientImage}`,
+            },
+          ],
         },
       ],
     },
     async () => {
       console.log("\nStarting vision test with base64 encoded image...");
       console.log("Image: 10x10 gradient PNG (blue to green transition)");
-      
+
       const result = await generateText({
         model: gatewayTransform("gpt-4o"),
         messages: [
-          { 
-            role: "user", 
+          {
+            role: "user",
             content: [
-              { type: "text", text: "Describe what you see in this image. Can you identify any colors or patterns?" },
-              { 
-                type: "image", 
-                image: `data:image/png;base64,${base64GradientImage}`
-              }
-            ]
+              {
+                type: "text",
+                text: "Describe what you see in this image. Can you identify any colors or patterns?",
+              },
+              {
+                type: "image",
+                image: `data:image/png;base64,${base64GradientImage}`,
+              },
+            ],
           },
         ],
         temperature: 0.7,
@@ -639,47 +682,58 @@ async function testGatewayTransformProvider() {
   console.log("=== Test Results Summary ===");
   console.log("========================================");
   console.log("\nAll tests completed at:", new Date().toISOString());
-  
+
   // Display results table
-  console.log("\n┌─────┬──────────────────────────────────────────────────────┬──────────┬──────────┐");
-  console.log("│  #  │ Test Name                                            │  Status  │ Duration │");
-  console.log("├─────┼──────────────────────────────────────────────────────┼──────────┼──────────┤");
-  
+  console.log(
+    "\n┌─────┬──────────────────────────────────────────────────────┬──────────┬──────────┐"
+  );
+  console.log(
+    "│  #  │ Test Name                                            │  Status  │ Duration │"
+  );
+  console.log(
+    "├─────┼──────────────────────────────────────────────────────┼──────────┼──────────┤"
+  );
+
   testResults.forEach((result, index) => {
     const num = String(index + 1).padEnd(3);
     const name = result.name.padEnd(52);
-    const status = result.status === "passed" 
-      ? "✅ PASS".padEnd(8)
-      : "❌ FAIL".padEnd(8);
+    const status =
+      result.status === "passed" ? "✅ PASS".padEnd(8) : "❌ FAIL".padEnd(8);
     const duration = `${result.duration}ms`.padStart(8);
-    
+
     console.log(`│ ${num} │ ${name} │ ${status} │ ${duration} │`);
   });
-  
-  console.log("└─────┴──────────────────────────────────────────────────────┴──────────┴──────────┘");
-  
+
+  console.log(
+    "└─────┴──────────────────────────────────────────────────────┴──────────┴──────────┘"
+  );
+
   // Summary statistics
-  const passed = testResults.filter(r => r.status === "passed").length;
-  const failed = testResults.filter(r => r.status === "failed").length;
+  const passed = testResults.filter((r) => r.status === "passed").length;
+  const failed = testResults.filter((r) => r.status === "failed").length;
   const totalDuration = testResults.reduce((sum, r) => sum + r.duration, 0);
-  
+
   console.log(`\nTest Summary:`);
   console.log(`  Total Tests: ${testResults.length}`);
-  console.log(`  Passed: ${passed} (${Math.round(passed / testResults.length * 100)}%)`);
-  console.log(`  Failed: ${failed} (${Math.round(failed / testResults.length * 100)}%)`);
+  console.log(
+    `  Passed: ${passed} (${Math.round((passed / testResults.length) * 100)}%)`
+  );
+  console.log(
+    `  Failed: ${failed} (${Math.round((failed / testResults.length) * 100)}%)`
+  );
   console.log(`  Total Duration: ${totalDuration}ms`);
-  
+
   // Show failed test details if any
   if (failed > 0) {
     console.log("\n❌ Failed Tests:");
     testResults
-      .filter(r => r.status === "failed")
-      .forEach(result => {
+      .filter((r) => r.status === "failed")
+      .forEach((result) => {
         console.log(`\n  ${result.name}:`);
         console.log(`    Error: ${result.error}`);
       });
   }
-  
+
   console.log("\nThe Gateway Transform provider has been thoroughly tested.");
   console.log("When connected to a real gateway endpoint,");
   console.log("it will handle actual LLM responses properly.");
