@@ -58,6 +58,7 @@ for all authentication. If you don't need signed requests, you can use
 LLM_AUTH_CONSUMER_ID without the other LLM_AUTH variables.
 */
 import { generateText, streamText } from "ai";
+import { z } from "zod";
 import { createGatewayTransform, isLlmAuthClient } from "./src/index";
 
 interface TestResult {
@@ -618,12 +619,369 @@ async function testGatewayTransformProvider() {
     }
   );
 
-  // Test 12: Vision with Base64 Encoded Image
+  // Test 12: Tool Calls - Sentiment Analysis
+  await runTest(
+    "Test 12: Tool Calls - Sentiment Analysis",
+    {
+      model: "o4-mini",
+      streaming: false,
+      temperature: 0.7,
+      messages: [
+        {
+          role: "user",
+          content: "The message is purely factual and carries no emotional tone. Sentiment score: 0.5 (neutral).",
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "extract_structure",
+            description: "Extract structured data from the completion according to the schema",
+            parameters: {
+              type: "object",
+              properties: {
+                sentiment: {
+                  type: "string",
+                  enum: ["very_negative", "negative", "neutral", "positive", "very_positive"],
+                },
+                score: {
+                  type: "number",
+                  minimum: 0,
+                  maximum: 1,
+                  description: "Sentiment score from 0 (very negative) to 1 (very positive)",
+                },
+                reasoning: {
+                  type: "string",
+                  description: "Brief explanation of the sentiment analysis",
+                },
+              },
+              required: ["sentiment", "score", "reasoning"],
+            },
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "extract_structure" } },
+    },
+    async () => {
+      console.log("\nStarting tool call test for sentiment analysis...");
+
+      const result = await generateText({
+        model: gatewayTransform("o4-mini"),
+        messages: [
+          {
+            role: "user",
+            content: "The message is purely factual and carries no emotional tone. Sentiment score: 0.5 (neutral).",
+          },
+        ],
+        tools: {
+          extract_structure: {
+            description: "Extract structured data from the completion according to the schema",
+            parameters: z.object({
+              sentiment: z.enum(["very_negative", "negative", "neutral", "positive", "very_positive"]),
+              score: z.number().min(0).max(1).describe("Sentiment score from 0 (very negative) to 1 (very positive)"),
+              reasoning: z.string().describe("Brief explanation of the sentiment analysis"),
+            }),
+          },
+        },
+        toolChoice: { type: "tool", toolName: "extract_structure" },
+        temperature: 0.7,
+      });
+
+      console.log("\nTool call response:");
+      console.log("Text:", result.text);
+      console.log("Tool calls:", JSON.stringify(result.toolCalls, null, 2));
+      console.log("Finish reason:", result.finishReason);
+    }
+  );
+
+  // Test 13: Tool Calls - Multiple Tools
+  await runTest(
+    "Test 13: Tool Calls - Multiple Tools Available",
+    {
+      model: "gpt-4o",
+      streaming: false,
+      temperature: 0.7,
+      messages: [
+        {
+          role: "user",
+          content: "What's the weather like in San Francisco today?",
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "get_weather",
+            description: "Get the current weather in a location",
+            parameters: {
+              type: "object",
+              properties: {
+                location: { type: "string", description: "The city and state" },
+                unit: { type: "string", enum: ["celsius", "fahrenheit"] },
+              },
+              required: ["location"],
+            },
+          },
+        },
+        {
+          type: "function",
+          function: {
+            name: "get_time",
+            description: "Get the current time in a location",
+            parameters: {
+              type: "object",
+              properties: {
+                location: { type: "string", description: "The city and state" },
+              },
+              required: ["location"],
+            },
+          },
+        },
+      ],
+      tool_choice: "auto",
+    },
+    async () => {
+      console.log("\nStarting multiple tools test...");
+
+      const result = await generateText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          {
+            role: "user",
+            content: "What's the weather like in San Francisco today?",
+          },
+        ],
+        tools: {
+          get_weather: {
+            description: "Get the current weather in a location",
+            parameters: z.object({
+              location: z.string().describe("The city and state"),
+              unit: z.enum(["celsius", "fahrenheit"]).optional(),
+            }),
+          },
+          get_time: {
+            description: "Get the current time in a location",
+            parameters: z.object({
+              location: z.string().describe("The city and state"),
+            }),
+          },
+        },
+        toolChoice: "auto",
+        temperature: 0.7,
+      });
+
+      console.log("\nMultiple tools response:");
+      console.log("Text:", result.text);
+      console.log("Tool calls:", JSON.stringify(result.toolCalls, null, 2));
+      console.log("Tool chosen:", result.toolCalls?.[0]?.toolName || "None");
+    }
+  );
+
+  // Test 14: Streaming Tool Calls
+  await runTest(
+    "Test 14: Streaming Tool Calls",
+    {
+      model: "gpt-4o",
+      streaming: true,
+      temperature: 0.7,
+      messages: [
+        {
+          role: "user",
+          content: "Calculate the area of a rectangle with width 10 and height 20.",
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "calculate_area",
+            description: "Calculate the area of a rectangle",
+            parameters: {
+              type: "object",
+              properties: {
+                width: { type: "number", description: "The width of the rectangle" },
+                height: { type: "number", description: "The height of the rectangle" },
+              },
+              required: ["width", "height"],
+            },
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "calculate_area" } },
+    },
+    async () => {
+      console.log("\nStarting streaming tool call test...");
+
+      const { textStream, toolCalls } = await streamText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          {
+            role: "user",
+            content: "Calculate the area of a rectangle with width 10 and height 20.",
+          },
+        ],
+        tools: {
+          calculate_area: {
+            description: "Calculate the area of a rectangle",
+            parameters: z.object({
+              width: z.number().describe("The width of the rectangle"),
+              height: z.number().describe("The height of the rectangle"),
+            }),
+          },
+        },
+        toolChoice: { type: "tool", toolName: "calculate_area" },
+        temperature: 0.7,
+      });
+
+      console.log("\nStreaming tool call started:");
+      console.log("---");
+
+      let textChunks = "";
+      for await (const chunk of textStream) {
+        console.log(`[Text chunk]: "${chunk}"`);
+        textChunks += chunk;
+      }
+
+      console.log("---");
+      console.log("Full text:", textChunks || "(No text content)");
+      
+      // Tool calls are available after streaming completes
+      const toolCallsArray = await toolCalls;
+      console.log("\nTool calls received:", JSON.stringify(toolCallsArray, null, 2));
+    }
+  );
+
+  // Test 15: Tool Calls with Required Mode
+  await runTest(
+    "Test 15: Tool Calls - Required Mode",
+    {
+      model: "gpt-4o",
+      streaming: false,
+      temperature: 0.7,
+      messages: [
+        {
+          role: "user",
+          content: "I need help with something.",
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "get_help",
+            description: "Provide assistance on a topic",
+            parameters: {
+              type: "object",
+              properties: {
+                topic: { type: "string", description: "The topic to help with" },
+                urgency: { type: "string", enum: ["low", "medium", "high"] },
+              },
+              required: ["topic"],
+            },
+          },
+        },
+      ],
+      tool_choice: "required",
+    },
+    async () => {
+      console.log("\nStarting required tool call test...");
+
+      const result = await generateText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          {
+            role: "user",
+            content: "I need help with something.",
+          },
+        ],
+        tools: {
+          get_help: {
+            description: "Provide assistance on a topic",
+            parameters: z.object({
+              topic: z.string().describe("The topic to help with"),
+              urgency: z.enum(["low", "medium", "high"]).optional(),
+            }),
+          },
+        },
+        toolChoice: "required",
+        temperature: 0.7,
+      });
+
+      console.log("\nRequired tool call response:");
+      console.log("Text:", result.text);
+      console.log("Tool calls:", JSON.stringify(result.toolCalls, null, 2));
+      console.log("Tool was called:", result.toolCalls && result.toolCalls.length > 0);
+    }
+  );
+
+  // Test 16: Tool Calls - None Mode
+  await runTest(
+    "Test 16: Tool Calls - None Mode",
+    {
+      model: "gpt-4o",
+      streaming: false,
+      temperature: 0.7,
+      messages: [
+        {
+          role: "user",
+          content: "What's 2 + 2?",
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "calculator",
+            description: "Perform mathematical calculations",
+            parameters: {
+              type: "object",
+              properties: {
+                expression: { type: "string", description: "The mathematical expression" },
+              },
+              required: ["expression"],
+            },
+          },
+        },
+      ],
+      tool_choice: "none",
+    },
+    async () => {
+      console.log("\nStarting none tool call test...");
+
+      const result = await generateText({
+        model: gatewayTransform("gpt-4o"),
+        messages: [
+          {
+            role: "user",
+            content: "What's 2 + 2?",
+          },
+        ],
+        tools: {
+          calculator: {
+            description: "Perform mathematical calculations",
+            parameters: z.object({
+              expression: z.string().describe("The mathematical expression"),
+            }),
+          },
+        },
+        toolChoice: "none",
+        temperature: 0.7,
+      });
+
+      console.log("\nNone tool choice response:");
+      console.log("Text:", result.text);
+      console.log("Tool calls:", result.toolCalls);
+      console.log("No tools were called (as expected):", !result.toolCalls || result.toolCalls.length === 0);
+    }
+  );
+
+  // Test 17: Vision with Base64 Encoded Image
   const base64Image =
     "data:image/jpeg;base64,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";
 
   await runTest(
-    "Test 12: Vision with Base64 Encoded Image",
+    "Test 17: Vision with Base64 Encoded Image",
     {
       model: "gpt-4o",
       streaming: false,

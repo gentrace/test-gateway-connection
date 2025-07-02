@@ -294,12 +294,12 @@ export function convertToGatewayTransformMessages(
                       ? { href: part.image.href }
                       : typeof part.image === "string"
                       ? {
-                          length: part.image.length,
-                          preview: part.image.substring(0, 50),
+                          length: (part.image as string).length,
+                          preview: (part.image as string).substring(0, 50),
                         }
                       : {
-                          type: part.image.constructor.name,
-                          length: part.image.length,
+                          type: "unknown",
+                          value: part.image,
                         },
                 });
 
@@ -309,7 +309,7 @@ export function convertToGatewayTransformMessages(
                     image_url: { url: part.image.href },
                   });
                 } else if (typeof part.image === "string") {
-                  if (part.image.startsWith("data:")) {
+                  if ((part.image as string).startsWith("data:")) {
                     // Already a data URL, use it as-is
                     contentArray.push({
                       type: "image_url",

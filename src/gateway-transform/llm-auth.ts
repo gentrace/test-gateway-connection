@@ -155,7 +155,7 @@ export function loadLlmAuthConfig(): LlmAuthConfig | null {
       serviceNameKey,
       serviceEnvKey,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("[LLMAuth] FATAL ERROR in loadLlmAuthConfig:", {
       errorType: error?.constructor?.name,
       errorMessage: error?.message,
@@ -182,7 +182,7 @@ export function isLlmAuthClient(): boolean {
     console.log("[LLMAuth] isLlmAuthClient result:", result);
     console.log("[LLMAuth] Auth mode:", result ? "LLM Auth" : "Basic Auth");
     return result;
-  } catch (error) {
+  } catch (error: any) {
     console.error("[LLMAuth] ERROR in isLlmAuthClient:", {
       errorType: error?.constructor?.name,
       errorMessage: error?.message,
@@ -287,7 +287,7 @@ export function generateLlmAuthConsumerHeaders(): LlmAuthConsumerHeaders {
 
       console.log("[LLMAuth] Headers generated successfully");
       return headers;
-    } catch (signError) {
+    } catch (signError: any) {
       console.error("[LLMAuth] ERROR during signing process:", {
         errorType: signError?.constructor?.name,
         errorMessage: signError?.message,
@@ -302,7 +302,7 @@ export function generateLlmAuthConsumerHeaders(): LlmAuthConsumerHeaders {
       console.error("[LLMAuth]   - Corrupted private key data");
       throw new Error(`Failed to sign data: ${signError?.message}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("[LLMAuth] FATAL ERROR in generateLlmAuthConsumerHeaders:", {
       errorType: error?.constructor?.name,
       errorMessage: error?.message,

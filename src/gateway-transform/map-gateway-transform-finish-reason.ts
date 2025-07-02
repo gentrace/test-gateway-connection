@@ -59,7 +59,7 @@ export function mapGatewayTransformFinishReason(
       timestamp: new Date().toISOString()
     });
     return mapped;
-  } catch (error) {
+  } catch (error: any) {
     console.error('[MapFinishReason] ERROR in mapGatewayTransformFinishReason:', {
       errorType: error?.constructor?.name,
       errorMessage: error?.message,
